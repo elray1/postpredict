@@ -1,9 +1,9 @@
 [project]
-name = "reichlab-python-template"
-description = "Python template for Reich Lab projects"
+name = "postpredict"
+description = "Postprocess probabilistic predictions"
 license = {text = "MIT License"}
 readme = "README.md"
-requires-python = '>=3.10'
+requires-python = '>=3.9'
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -11,35 +11,34 @@ classifiers = [
 dynamic = ["version"]
 
 dependencies = [
-    "structlog",
-    "rich",
-    "toml"
 ]
 
 [project.optional-dependencies]
 dev = [
     "coverage",
-    "freezegun",
     "mypy",
     "pre-commit",
     "pytest",
     "ruff",
+    "toml",
     "types-toml",
 ]
 
-[project.entry-points."console_scripts"]
-reichlab_python_template = "reichlab_python_template.app:main"
+[project.urls]
+Repository = "https://github.com/reichlab/postprocess.git"
 
 [build-system]
 # Minimum requirements for the build system to execute.
 requires = ["setuptools", "wheel"]
 
-[tools.setuptools]
-packages = ["reichlab_python_template"]
+[tool.pytest.ini_options]
+tmp_path_retention_policy = "none"
+testpaths = [
+    "tests",
+]
 
-[tool.reichlab_python_template]
-# to write json-formatted logs to disk, uncomment the following line specify the file location
-# log_file = "/path/to/log/files/rechlab_python_template.log"
+[tools.setuptools]
+packages = ["postpredict"]
 
 [tool.ruff]
 line-length = 120
@@ -52,4 +51,4 @@ inline-quotes = "double"
 quote-style = "double"
 
 [tool.setuptools.dynamic]
-version = {attr = "reichlab_python_template.__version__"}
+version = {attr = "postpredict.__version__"}
