@@ -1,41 +1,17 @@
-# reichlab-python-template
+# postpredict
 
-[REPLACE WITH A DESCRIPTION OF YOUR PROJECT]
+This is a python module for postprocessing probabilistic predictions. We plan to include functionality for the following tasks:
 
-A Python template for Reich Lab projects.
+- calibrating predictions
+- inducing dependence across marginal distributions using copulas and/or the Shaake shuffle
+- aligning predictions that are produced at multiple spatial scales to ensure coherence
 
-This repo contains a Python package with minimal functionality. It serves as a starting point for new projects (it can be selected as the template when creating a new repo in the Reich Lab org).
-
-There as some opinionated choices here (explained below) which people should override as needed. The main goal is to have a consistent starting point to get up and running with a new Python code base.
-
-## Getting started
-
-[REMOVE THIS SECTION AFTER FOLLOWING THE INSTRUCTIONS BELOW]
-
-If you're using this repo as a template for a new project, make the following changes:
-
-1. Rename the `reichlab_python_template` directory (under `src`) to the name of your package (no hyphens!).
-
-2. Replace all instances of `reichlab-python-template` with the name of your repo/project.
-
-3. Replace all instances of `reichlab_python_template` with the name of your package (remember that Python module names cannot contain hyphens).
-
-4. Update [`pyproject.toml`](pyproject.toml). This file is required and will describe several aspects of your project. `pyproject.toml` replaces `setup.py` and is described in detail on [Python's packaging website](https://packaging.python.org/en/latest/guides/writing-pyproject-toml/).
-
-5. Follow the _Setup for local development_ instructions below to ensure that everything works as expected.
-
-
-## Installing and running the package (no development)
+## Installing the package (no development)
 
 To install this package via pip:
 
 ```bash
-pip install git+[GITHUB LINK TO YOUR REPO]
-```
-
-To run it:
-```bash
-reichlab_python_template
+pip install git+https://github.com/reichlab/postpredict
 ```
 
 ## Setup for local development
@@ -58,7 +34,7 @@ Developers will be using a Python virtual environment that:
 2. Change to the repo's root directory:
 
     ```bash
-    cd reichlab-python-template
+    cd postpredict
     ```
 
 3. Make sure the correct version of Python is currently active, and create a Python virtual environment:
@@ -133,20 +109,4 @@ To add or remove a project dependency:
     # alternately, you can use uv to install the dependencies: it is faster and has a
     # a handy sync option that will cleanup unused dependencies
     uv pip sync requirements/requirements-dev.txt
-
-## Opinionated notes on Python tooling
-
-[REMOVE THIS SECTION]
-
-The Python ecosystem is overwhelming! Current opinionated preferences, subject to change:
-
-- To install and manage various versions of Python: [pyenv](https://github.com/pyenv/pyenv) + a local .python-version file
-- To install Python packages that are available from anywhere on the machine, regardless of which Python environment is activated: [pipx](https://pipx.pypa.io/stable/)
-- To create and manage Python virtual environments: [venv](https://docs.python.org/3/library/venv.html).
-    - It's handy having the environment packages right there in the project directory
-    - Most third-party tools for managing virtual environments (_e.g._, poetry, PDM, pipenv) do _too much_ and get in the way
-- To generate requirements files from `pyproject.toml`: ['uv'](https://github.com/astral-sh/uv?tab=readme-ov-file#getting-started). It's new, but it's orders of magnitude faster than `pip-compile`.
-- To install dependencies: uv again (again, mostly due to speed; good old pip is another fine option)
-- Logging: [structlog](https://www.structlog.org/en/stable/). Python's built-in logging module is tedious.
-- Linting and formatting: [ruff](https://github.com/astral-sh/ruff) because it does both and is fast.
-- Pre-commit hooks: [pre-commit](https://pre-commit.com/).
+    ```
