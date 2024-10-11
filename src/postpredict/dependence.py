@@ -2,6 +2,7 @@ import abc
 
 from .util import argsort_random_tiebreak
 
+
 class TimeDependencePostprocessor(abc.ABC):
     def __init__(self):
         pass
