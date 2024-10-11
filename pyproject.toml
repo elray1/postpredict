@@ -11,6 +11,8 @@ classifiers = [
 dynamic = ["version"]
 
 dependencies = [
+    "pandas",
+    "numpy"
 ]
 
 [project.optional-dependencies]
