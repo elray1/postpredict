@@ -3,8 +3,8 @@ import abc
 import numpy as np
 import polars as pl
 
-from postpredict.util import argsort_random_tiebreak
 from postpredict import weighters
+from postpredict.util import argsort_random_tiebreak
 
 
 class TimeDependencePostprocessor(abc.ABC):
@@ -116,7 +116,6 @@ class Schaake(TimeDependencePostprocessor):
         self.key_cols = key_cols
         self.time_col = time_col
         self.obs_col = obs_col
-        self.horizon_col = horizon_col
         self.shift_varnames = []
 
     
@@ -139,13 +138,13 @@ class Schaake(TimeDependencePostprocessor):
         self.horizon_col = horizon_col
         min_horizon = model_out[horizon_col].min()
         max_horizon = model_out[horizon_col].max()
-        wide_horizon_cols = [f'{horizon_col}{h}' for h in range(min_horizon, max_horizon + 1)]
+        self.wide_horizon_cols = [f"{horizon_col}{h}" for h in range(min_horizon, max_horizon + 1)]
         wide_model_out = (
             model_out
             .with_columns((horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
             .pivot(on=horizon_col, index = self.key_cols, values = self.obs_col)
         )
-        _build_train_X_y(min_horizon, max_horizon)
+        self._build_train_X_y(min_horizon, max_horizon)
         
         transformed_model_out = (
             wide_model_out
@@ -160,9 +159,9 @@ class Schaake(TimeDependencePostprocessor):
         self.df = self.df.group_by(self.key_cols)
         for h in range(min_horizon, max_horizon + 1):
             if h < 0:
-                shift_varname = self.time_col + '_m' + str(abs(h))
+                shift_varname = self.time_col + "_m" + str(abs(h))
             else:
-                shift_varname = self.time_col + '_p' + str(abs(h))
+                shift_varname = self.time_col + "_p" + str(abs(h))
             
             if shift_varname not in self.shift_varnames:
                 self.shift_varnames.append(shift_varname)
@@ -170,12 +169,12 @@ class Schaake(TimeDependencePostprocessor):
         
         df_dropna = self.df.dropna()
         self.train_X = df_dropna[self.key_cols]
-        self.train_y = df_dropna[shift_varnames]
+        self.train_y = df_dropna[self.shift_varnames]
 
 
     def _transform_one_group(self, wide_model_out):        
         templates = self.build_Shaake_templates(wide_model_out)
-        transformed_model_out = self.apply_shuffle(wide_model_out, templates, self.value_cols)
+        transformed_model_out = self.apply_shuffle(wide_model_out[self.wide_horizon_cols], templates, self.value_cols)
         return transformed_model_out
 
 

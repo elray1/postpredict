@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class EqualWeighter():
     def __init__(self) -> None:
         pass
