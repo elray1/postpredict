@@ -1,4 +1,4 @@
-# Tests for postpredict.dependence.TimeDependenceModel.apply_shuffle
+# Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
 #
 # The test case is based on the example given in Fig 2 of
 # Clark, Martyn, et al. "The Schaake shuffle: A method for reconstructing
@@ -56,10 +56,10 @@ def expected_final():
     
 
 def test_apply_shuffle(wide_model_out, template, expected_final, monkeypatch):
-    # we use monkeypatch to remove abstract methods from the TimeDepenenceModel
-    # class, allowing us to create an object of that class so as to test the
-    # non-abstract apply_shuffle method it defines. See
-    # https://stackoverflow.com/a/77748100
+    # we use monkeypatch to remove abstract methods from the
+    # TimeDependencePostprocessor class, allowing us to create an object of
+    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdm = TimeDependencePostprocessor()
     actual_final = tdm.apply_shuffle(
