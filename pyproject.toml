@@ -11,7 +11,7 @@ classifiers = [
 dynamic = ["version"]
 
 dependencies = [
-    "pandas",
+    "polars",
     "numpy"
 ]
 
@@ -19,7 +19,6 @@ dependencies = [
 dev = [
     "coverage",
     "mypy",
-    "pandas-stubs",
     "pre-commit",
     "pytest",
     "ruff",

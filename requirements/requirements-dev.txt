@@ -19,45 +19,30 @@ mypy-extensions==1.0.0
 nodeenv==1.8.0
     # via pre-commit
 numpy==2.1.2
-    # via
-    #   postpredict (pyproject.toml)
-    #   pandas
-    #   pandas-stubs
+    # via postpredict (pyproject.toml)
 packaging==24.0
     # via pytest
-pandas==2.2.3
-    # via postpredict (pyproject.toml)
-pandas-stubs==2.2.3.241009
-    # via postpredict (pyproject.toml)
 platformdirs==4.2.1
     # via virtualenv
 pluggy==1.5.0
     # via pytest
+polars==1.9.0
+    # via postpredict (pyproject.toml)
 pre-commit==3.7.0
     # via postpredict (pyproject.toml)
 pytest==8.2.0
     # via postpredict (pyproject.toml)
-python-dateutil==2.9.0.post0
-    # via pandas
-pytz==2024.2
-    # via pandas
 pyyaml==6.0.1
     # via pre-commit
 ruff==0.4.3
     # via postpredict (pyproject.toml)
 setuptools==75.1.0
     # via nodeenv
-six==1.16.0
-    # via python-dateutil
 toml==0.10.2
     # via postpredict (pyproject.toml)
-types-pytz==2024.2.0.20241003
-    # via pandas-stubs
 types-toml==0.10.8.20240310
     # via postpredict (pyproject.toml)
 typing-extensions==4.11.0
     # via mypy
-tzdata==2024.2
-    # via pandas
 virtualenv==20.26.1
     # via pre-commit
