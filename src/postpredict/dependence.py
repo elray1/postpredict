@@ -1,8 +1,9 @@
 import abc
 
+import numpy as np
 import polars as pl
 
-from .util import argsort_random_tiebreak
+from postpredict.util import argsort_random_tiebreak
 
 
 class TimeDependencePostprocessor(abc.ABC):
@@ -39,7 +40,10 @@ class TimeDependencePostprocessor(abc.ABC):
         """
     
     
-    def apply_shuffle(self, wide_model_out, value_cols, templates):
+    def apply_shuffle(self,
+                      wide_model_out: pl.DataFrame,
+                      value_cols: list[str],
+                      templates: np.ndarray) -> pl.DataFrame:
         """
         Given a collection of samples and an equally-sized collection of
         "dependence templates", shuffle the samples to match the rankings in the
@@ -54,7 +58,7 @@ class TimeDependencePostprocessor(abc.ABC):
         value_cols: character vector of columns in `wide_model_out` that contain
         predicted values over time. These should be given in temporal order.
         templates: numpy array of shape (wide_model_out.shape[0], len(value_cols))
-        containing
+        containing dependence templates.
         
         Returns
         -------
