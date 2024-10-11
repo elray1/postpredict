@@ -19,6 +19,7 @@ dependencies = [
 dev = [
     "coverage",
     "mypy",
+    "pandas-stubs",
     "pre-commit",
     "pytest",
     "ruff",

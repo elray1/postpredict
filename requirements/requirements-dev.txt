@@ -22,9 +22,12 @@ numpy==2.1.2
     # via
     #   postpredict (pyproject.toml)
     #   pandas
+    #   pandas-stubs
 packaging==24.0
     # via pytest
 pandas==2.2.3
+    # via postpredict (pyproject.toml)
+pandas-stubs==2.2.3.241009
     # via postpredict (pyproject.toml)
 platformdirs==4.2.1
     # via virtualenv
@@ -48,6 +51,8 @@ six==1.16.0
     # via python-dateutil
 toml==0.10.2
     # via postpredict (pyproject.toml)
+types-pytz==2024.2.0.20241003
+    # via pandas-stubs
 types-toml==0.10.8.20240310
     # via postpredict (pyproject.toml)
 typing-extensions==4.11.0
