@@ -72,7 +72,7 @@ class TimeDependencePostprocessor(abc.ABC):
         }
 
         sorted_wmo = wide_model_out.copy()
-        for i, c in enumerate(value_cols):
+        for c in value_cols:
             sorted_wmo[c] = sorted(wide_model_out[c])
             sorted_wmo.loc[col_orderings[c], c] = sorted_wmo[c].values
         
