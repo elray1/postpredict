@@ -4,6 +4,7 @@ import numpy as np
 import polars as pl
 
 from postpredict.util import argsort_random_tiebreak
+from postpredict import weighters
 
 
 class TimeDependencePostprocessor(abc.ABC):
@@ -89,7 +90,7 @@ class TimeDependencePostprocessor(abc.ABC):
 
 
 class Schaake(TimeDependencePostprocessor):
-    def __init__(self, weighter_class=None, **kwargs) -> None:
+    def __init__(self, weighter_class=weighters.EqualWeighter, **kwargs) -> None:
         self.weighter = weighter_class(**kwargs)
 
 
@@ -116,7 +117,8 @@ class Schaake(TimeDependencePostprocessor):
         self.time_col = time_col
         self.obs_col = obs_col
         self.horizon_col = horizon_col
-    
+        self.shift_varnames = []
+
     
     def transform(self, model_out, horizon_col="horizon"):
         """
@@ -155,7 +157,6 @@ class Schaake(TimeDependencePostprocessor):
 
 
     def _build_train_X_y(self, min_horizon, max_horizon):
-        shift_varnames = []
         self.df = self.df.group_by(self.key_cols)
         for h in range(min_horizon, max_horizon + 1):
             if h < 0:
@@ -163,9 +164,9 @@ class Schaake(TimeDependencePostprocessor):
             else:
                 shift_varname = self.time_col + '_p' + str(abs(h))
             
-            shift_varnames.append(shift_varname)
-            
-            self.df[shift_varname] = self.df[self.time_col].shift(-h)
+            if shift_varname not in self.shift_varnames:
+                self.shift_varnames.append(shift_varname)
+                self.df[shift_varname] = self.df[self.time_col].shift(-h)
         
         df_dropna = self.df.dropna()
         self.train_X = df_dropna[self.key_cols]
@@ -179,5 +180,10 @@ class Schaake(TimeDependencePostprocessor):
 
 
     def _build_Shaake_templates(self, wide_model_out):
-        weights = self.weighter.get_weights(self.df[self.key_cols], wide_model_out[self.key_cols])
-        
+        weights = self.weighter.get_weights(self.train_X, wide_model_out[0, self.key_cols])
+        selected_inds = np.random.choice(np.arange(self.train_y.shape[0]),
+                                         size = wide_model_out.shape[0],
+                                         replace = True,
+                                         p = weights)
+        templates = self.train_y[selected_inds]
+        return templates
