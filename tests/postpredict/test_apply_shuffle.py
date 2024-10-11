@@ -9,16 +9,16 @@
 # time dependence whereas that example is modeling spatial dependence.
 
 import numpy as np
-import pandas as pd
+import polars as pl
 import pytest
-from pandas.testing import assert_frame_equal
+from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
 
 
 @pytest.fixture
 def wide_model_out():
-    return pd.DataFrame.from_dict({
-        "location": ["a", "b"] * 5,
+    return pl.DataFrame({
+        "location": ["a"] * 10,
         "output_type": ["sample"] * 10,
         "output_type_id": list(range(10)),
         "horizon1": [15.3, 11.2, 8.8, 11.9, 7.5, 9.7, 8.3, 12.5, 10.3, 10.1],
@@ -28,7 +28,7 @@ def wide_model_out():
 
 
 @pytest.fixture
-def template():
+def templates():
     return np.array([
         [10.7, 10.9, 13.5],
         [9.3, 9.1, 13.7],
@@ -45,8 +45,8 @@ def template():
 
 @pytest.fixture
 def expected_final():
-    return pd.DataFrame.from_dict({
-        "location": ["a", "b"] * 5,
+    return pl.DataFrame({
+        "location": ["a"] * 10,
         "output_type": ["sample"] * 10,
         "output_type_id": list(range(10)),
         "horizon1": [10.1, 8.8, 7.5, 10.3, 11.9, 15.3, 8.3, 9.7, 11.2, 12.5],
@@ -55,7 +55,7 @@ def expected_final():
     })
     
 
-def test_apply_shuffle(wide_model_out, template, expected_final, monkeypatch):
+def test_apply_shuffle(wide_model_out, templates, expected_final, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
     # that class so as to test the non-abstract apply_shuffle method it defines.
@@ -65,6 +65,6 @@ def test_apply_shuffle(wide_model_out, template, expected_final, monkeypatch):
     actual_final = tdm.apply_shuffle(
         wide_model_out,
         [f"horizon{h}" for h in range(1, 4)],
-        template
+        templates
     )
     assert_frame_equal(actual_final, expected_final)

@@ -1,5 +1,7 @@
 import abc
 
+import polars as pl
+
 from .util import argsort_random_tiebreak
 
 
@@ -27,7 +29,7 @@ class TimeDependencePostprocessor(abc.ABC):
         
         Parameters
         ----------
-        model_out: pandas dataframe with sample predictions that do not
+        model_out: polars dataframe with sample predictions that do not
         necessarily capture temporal dependence.
         
         Returns
@@ -41,11 +43,13 @@ class TimeDependencePostprocessor(abc.ABC):
         """
         Given a collection of samples and an equally-sized collection of
         "dependence templates", shuffle the samples to match the rankings in the
-        dependence templates.
+        dependence templates. It is assumed that samples are exchangeable,
+        i.e. this function should be called with samples for a single
+        observational unit (e.g., one location/age group combination).
         
         Parameters
         ----------
-        wide_model_out: pandas dataframe with sample predictions that do not
+        wide_model_out: polars dataframe with sample predictions that do not
         necessarily capture temporal dependence.
         value_cols: character vector of columns in `wide_model_out` that contain
         predicted values over time. These should be given in temporal order.
@@ -71,9 +75,9 @@ class TimeDependencePostprocessor(abc.ABC):
             for i, c in enumerate(value_cols)
         }
 
-        sorted_wmo = wide_model_out.copy()
+        shuffled_wmo = wide_model_out.clone()
         for c in value_cols:
-            sorted_wmo[c] = sorted(wide_model_out[c])
-            sorted_wmo.loc[col_orderings[c], c] = sorted_wmo[c].values
+            shuffled_wmo = shuffled_wmo.with_columns(pl.col(c).sort().alias(c))
+            shuffled_wmo[col_orderings[c], c] = shuffled_wmo[c]
         
-        return sorted_wmo
+        return shuffled_wmo
