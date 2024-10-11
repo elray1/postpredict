@@ -1,7 +1,8 @@
 # Tests for postpredict.util.argsort_random_tiebreak
 
-from postpredict.util import argsort_random_tiebreak
 import numpy as np
+
+from postpredict.util import argsort_random_tiebreak
 
 def test_argsort_random_tiebreak():
     arr = np.array([2, 1, 3, 1, 2])

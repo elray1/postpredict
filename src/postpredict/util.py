@@ -6,9 +6,9 @@ def argsort_random_tiebreak(arr):
     random_values = np.random.random(len(arr))
     
     # Create a structured array to sort by the original values first, then the random values
-    structured_array = np.array(list(zip(arr, random_values)), dtype=[('values', arr.dtype), ('random', 'float64')])
+    structured_array = np.array(list(zip(arr, random_values)), dtype=[("values", arr.dtype), ("random", "float64")])
     
     # Sort the structured array
-    sorted_indices = np.argsort(structured_array, order=('values', 'random'))
+    sorted_indices = np.argsort(structured_array, order=("values", "random"))
     
     return sorted_indices
