@@ -81,3 +81,99 @@ class TimeDependencePostprocessor(abc.ABC):
             shuffled_wmo[col_orderings[c], c] = shuffled_wmo[c]
         
         return shuffled_wmo
+
+
+
+class Schaake(TimeDependencePostprocessor):
+    def __init__(self, weighter_class=None, **kwargs) -> None:
+        self.weighter = weighter_class(**kwargs)
+
+
+    def fit(self, df, key_cols=None, time_col="date", obs_col="value"):
+        """
+        Fit a Schaake shuffle model for temporal dependence across prediction
+        horizons. In practice this just involves saving the input arguments for
+        later use; the Schaake shuffle does not require any parameter estimation.
+        
+        Parameters
+        ----------
+        df: polars dataframe with training set observations.
+        key_cols: names of columns in `df` used to identify observational units,
+        e.g. location or age group.
+        time_col: name of column in `df` that contains the time index.
+        obs_col: name of column in `df` that contains observed values.
+        
+        Returns
+        -------
+        None
+        """
+        self.df = df
+        self.key_cols = key_cols
+        self.time_col = time_col
+        self.obs_col = obs_col
+        self.horizon_col = horizon_col
+    
+    
+    def transform(self, model_out, horizon_col="horizon"):
+        """
+        Apply the Schaake shuffle to sample predictions to induce dependence
+        across time in the predictive samples.
+        
+        Parameters
+        ----------
+        model_out: polars dataframe with sample predictions that do not
+        necessarily capture temporal dependence.
+        horizon_col: name of column in model_out that records the prediction horizon
+        
+        Returns
+        -------
+        A copy of the model_out parameter, with sample indices updated so that
+        they reflect the estimated temporal dependence structure.
+        """
+        self.horizon_col = horizon_col
+        min_horizon = model_out[horizon_col].min()
+        max_horizon = model_out[horizon_col].max()
+        wide_horizon_cols = [f'{horizon_col}{h}' for h in range(min_horizon, max_horizon + 1)]
+        wide_model_out = (
+            model_out
+            .with_columns((horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
+            .pivot(on=horizon_col, index = self.key_cols, values = self.obs_col)
+        )
+        _build_train_X_y(min_horizon, max_horizon)
+        
+        transformed_model_out = (
+            wide_model_out
+            .group_by(self.key_cols)
+            .map_groups(self._transform_one_group)
+        )
+
+        return transformed_model_out
+
+
+    def _build_train_X_y(self, min_horizon, max_horizon):
+        shift_varnames = []
+        self.df = self.df.group_by(self.key_cols)
+        for h in range(min_horizon, max_horizon + 1):
+            if h < 0:
+                shift_varname = self.time_col + '_m' + str(abs(h))
+            else:
+                shift_varname = self.time_col + '_p' + str(abs(h))
+            
+            shift_varnames.append(shift_varname)
+            
+            self.df[shift_varname] = self.df[self.time_col].shift(-h)
+        
+        df_dropna = self.df.dropna()
+        self.train_X = df_dropna[self.key_cols]
+        self.train_y = df_dropna[shift_varnames]
+
+
+    def _transform_one_group(self, wide_model_out):        
+        templates = self.build_Shaake_templates(wide_model_out)
+        transformed_model_out = self.apply_shuffle(wide_model_out, templates, self.value_cols)
+        return transformed_model_out
+
+
+    def _build_Shaake_templates(self, wide_model_out):
+        weights = self.weighter.get_weights(self.df[self.key_cols], wide_model_out[self.key_cols])
+        
