@@ -2,7 +2,7 @@
 import numpy as np
 
 
-def argsort_random_tiebreak(arr):
+def argsort_random_tiebreak(arr: np.ndarray) -> np.ndarray:
     # Generate random values for each element
     random_values = np.random.random(len(arr))
     
