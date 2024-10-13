@@ -8,7 +8,6 @@
 # However, we swap the roles of geographical units and time, as we are modeling
 # time dependence whereas that example is modeling spatial dependence.
 
-import numpy as np
 import polars as pl
 import pytest
 from datetime import datetime, timedelta
