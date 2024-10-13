@@ -8,9 +8,10 @@
 # However, we swap the roles of geographical units and time, as we are modeling
 # time dependence whereas that example is modeling spatial dependence.
 
+from datetime import datetime, timedelta
+
 import polars as pl
 import pytest
-from datetime import datetime, timedelta
 from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
 
