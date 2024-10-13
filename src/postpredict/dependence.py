@@ -12,8 +12,7 @@ class TimeDependencePostprocessor(abc.ABC):
         pass
 
 
-    @abc.abstractmethod
-    def fit(self, **kwargs):
+    def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"], **kwargs):
         """
         Fit a model for temporal dependence across prediction horizons
 
@@ -41,7 +40,7 @@ class TimeDependencePostprocessor(abc.ABC):
         """
     
     
-    def apply_shuffle(self,
+    def _apply_shuffle(self,
                       wide_model_out: pl.DataFrame,
                       value_cols: list[str],
                       templates: np.ndarray) -> pl.DataFrame:
@@ -88,13 +87,59 @@ class TimeDependencePostprocessor(abc.ABC):
         return shuffled_wmo
 
 
+    def _build_train_X_Y(self, min_horizon, max_horizon):
+        """
+        Build training set data frames self.train_X with features and
+        self.train_Y with observed values in windows from min_horizon to
+        max_horizon around each time point.
+        
+        Parameters
+        ----------
+        min_horizon: int
+            minimum prediction horizon
+        max_horizon: int
+            maximum prediction horizon
+        
+        Returns
+        -------
+        None
+        
+        Notes
+        -----
+        This method sets self.shift_varnames, self.train_X, and self.train_Y,
+        and it updates self.df to have new columns.
+        
+        It expects the object to have the properties self.df, self.key_cols,
+        self.time_col, self.obs_col, and self.feat_cols set already.
+        """
+        self.shift_varnames = []
+        for h in range(min_horizon, max_horizon + 1):
+            if h < 0:
+                shift_varname = self.obs_col + "_shift_m" + str(abs(h))
+            else:
+                shift_varname = self.obs_col + "_shift_p" + str(abs(h))
+            
+            if shift_varname not in self.shift_varnames:
+                self.shift_varnames.append(shift_varname)
+                self.df = self.df.with_columns(
+                    pl.col(self.obs_col)
+                    .shift(-h)
+                    .over(self.key_cols, order_by=self.time_col)
+                    .alias(shift_varname)
+                )
+        
+        df_dropnull = self.df.drop_nulls()
+        self.train_X = df_dropnull[self.feat_cols]
+        self.train_Y = df_dropnull[self.shift_varnames]
+
+
 
 class Schaake(TimeDependencePostprocessor):
     def __init__(self, weighter_class=weighters.EqualWeighter, **kwargs) -> None:
         self.weighter = weighter_class(**kwargs)
 
 
-    def fit(self, df, key_cols=None, time_col="date", obs_col="value"):
+    def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
         """
         Fit a Schaake shuffle model for temporal dependence across prediction
         horizons. In practice this just involves saving the input arguments for
@@ -107,6 +152,7 @@ class Schaake(TimeDependencePostprocessor):
         e.g. location or age group.
         time_col: name of column in `df` that contains the time index.
         obs_col: name of column in `df` that contains observed values.
+        feat_cols: names of columns in `df` with features
         
         Returns
         -------
@@ -116,7 +162,7 @@ class Schaake(TimeDependencePostprocessor):
         self.key_cols = key_cols
         self.time_col = time_col
         self.obs_col = obs_col
-        self.shift_varnames = []
+        self.feat_cols = feat_cols
 
     
     def transform(self, model_out, horizon_col="horizon"):
@@ -155,31 +201,14 @@ class Schaake(TimeDependencePostprocessor):
         return transformed_model_out
 
 
-    def _build_train_X_y(self, min_horizon, max_horizon):
-        self.df = self.df.group_by(self.key_cols)
-        for h in range(min_horizon, max_horizon + 1):
-            if h < 0:
-                shift_varname = self.time_col + "_m" + str(abs(h))
-            else:
-                shift_varname = self.time_col + "_p" + str(abs(h))
-            
-            if shift_varname not in self.shift_varnames:
-                self.shift_varnames.append(shift_varname)
-                self.df[shift_varname] = self.df[self.time_col].shift(-h)
-        
-        df_dropna = self.df.dropna()
-        self.train_X = df_dropna[self.key_cols]
-        self.train_y = df_dropna[self.shift_varnames]
-
-
     def _transform_one_group(self, wide_model_out):        
-        templates = self.build_Shaake_templates(wide_model_out)
+        templates = self._build_templates(wide_model_out)
         transformed_model_out = self.apply_shuffle(wide_model_out[self.wide_horizon_cols], templates, self.value_cols)
         return transformed_model_out
 
 
-    def _build_Shaake_templates(self, wide_model_out):
-        weights = self.weighter.get_weights(self.train_X, wide_model_out[0, self.key_cols])
+    def _build_templates(self, wide_model_out):
+        weights = self.weighter.get_weights(self.train_X, wide_model_out[0, self.feat_cols])
         selected_inds = np.random.choice(np.arange(self.train_y.shape[0]),
                                          size = wide_model_out.shape[0],
                                          replace = True,

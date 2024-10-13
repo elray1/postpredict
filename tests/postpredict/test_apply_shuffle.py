@@ -61,8 +61,8 @@ def test_apply_shuffle(wide_model_out, templates, expected_final, monkeypatch):
     # that class so as to test the non-abstract apply_shuffle method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdm = TimeDependencePostprocessor()
-    actual_final = tdm.apply_shuffle(
+    tdp = TimeDependencePostprocessor()
+    actual_final = tdp._apply_shuffle(
         wide_model_out,
         [f"horizon{h}" for h in range(1, 4)],
         templates
