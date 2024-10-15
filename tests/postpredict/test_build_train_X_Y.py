@@ -11,19 +11,8 @@
 from datetime import datetime, timedelta
 
 import polars as pl
-import pytest
 from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
-
-
-@pytest.fixture
-def obs_data():
-    return pl.DataFrame({
-        "location": ["a"] * 20 + ["b"] * 20,
-        "age_group": (["young"] * 10 + ["old"] * 10) * 2,
-        "date": [datetime.strptime("2020-01-01", "%Y-%m-%d") + timedelta(i) for i in range(10)] * 4,
-        "value": list(range(10, 50))
-    })
 
 
 def test_build_train_X_y_positive_horizons(obs_data, monkeypatch):

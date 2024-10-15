@@ -133,6 +133,90 @@ class TimeDependencePostprocessor(abc.ABC):
         self.train_Y = df_dropnull[self.shift_varnames]
 
 
+    def _pivot_horizon(self, model_out, horizon_col, idx_col, pred_col):
+        """
+        Pivot horizon column wider, overwriting sample indices along the way
+        to reflect temporal dependence across horizons within key groups.
+        """
+        # check that within each group defined by self.key_cols, each horizon
+        # appears the same number of times.
+        min_horizon = model_out[horizon_col].min()
+        max_horizon = model_out[horizon_col].max()
+        expected_horizons = list(range(min_horizon, max_horizon + 1))
+
+        # To try to avoid column name collisions, we do a little namespacing
+        # with the prefix "postpredict_"
+        horizon_counts = (
+            model_out
+            .group_by(self.key_cols + [horizon_col])
+            .agg(pl.col(horizon_col).len().alias("postpredict_horizon_count"))
+        )
+        
+        # all horizons from min_horizon to max_horizon are present within all key_col groups
+        all_groups_match_expected = (
+            horizon_counts[self.key_cols + [horizon_col]]
+            .group_by(self.key_cols)
+            .all()
+            .with_columns(
+                pl.col(horizon_col)
+                .map_elements(lambda x: list(set(x).symmetric_difference(expected_horizons)) == [], return_dtype=bool)
+                .alias("matches_expected_horizons")
+            )
+            ["matches_expected_horizons"].all()
+        )
+        if not all_groups_match_expected:
+            raise ValueError("Within each key group, model_out must contain predictions at all integer horizons from the smallest to the largest present.")
+
+        # within each key_col group, each horizon appears the same number of times
+        n_unique_horizon_counts = (
+            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
+            .group_by(self.key_cols)
+            .n_unique()
+            ["postpredict_horizon_count"]
+        )
+        if any(n_unique_horizon_counts > 1):
+            raise ValueError("Within each key group, model_out must contain the same numer of predictions for each horizon.")
+
+        # replace sample indices to have repeated values across horizons within each key group,
+        # no repeated values across key groups
+        horizon_count_by_group = (
+            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
+            .group_by(self.key_cols)
+            .agg(pl.col("postpredict_horizon_count").first())
+        )
+        model_out = (
+            model_out
+            .join(
+                horizon_count_by_group.with_columns(
+                    postpredict_horizon_cum_count = pl.col("postpredict_horizon_count").cum_sum() - pl.col("postpredict_horizon_count")
+                ),
+                on = self.key_cols
+            )
+            .with_columns(
+                output_type_id = pl.arange(
+                    pl.col("postpredict_horizon_cum_count").first(),
+                    pl.col("postpredict_horizon_cum_count").first() + pl.col("postpredict_horizon_count").first()
+                )
+                .over(self.key_cols + [horizon_col])
+            )
+            .drop(["postpredict_horizon_count", "postpredict_horizon_cum_count"])
+        )
+        
+        # perform pivot operation, save resulting new column names to self
+        self.wide_horizon_cols = [f"postpredict_{horizon_col}{h}" for h in range(min_horizon, max_horizon + 1)]
+        wide_model_out = (
+            model_out
+            .with_columns(("postpredict_" + horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
+            .pivot(
+                on=horizon_col,
+                index=list(set(self.key_cols + [idx_col] + self.feat_cols)),
+                values=pred_col
+            )
+        )
+        
+        return wide_model_out
+
+
 
 class Schaake(TimeDependencePostprocessor):
     def __init__(self, weighter_class=weighters.EqualWeighter, **kwargs) -> None:
@@ -165,7 +249,7 @@ class Schaake(TimeDependencePostprocessor):
         self.feat_cols = feat_cols
 
     
-    def transform(self, model_out, horizon_col="horizon"):
+    def transform(self, model_out, horizon_col="horizon", pred_col = "value", idx_col = "output_type_id"):
         """
         Apply the Schaake shuffle to sample predictions to induce dependence
         across time in the predictive samples.
@@ -181,15 +265,9 @@ class Schaake(TimeDependencePostprocessor):
         A copy of the model_out parameter, with sample indices updated so that
         they reflect the estimated temporal dependence structure.
         """
-        self.horizon_col = horizon_col
+        wide_model_out = self._pivot_horizon(model_out, horizon_col, idx_col, pred_col)
         min_horizon = model_out[horizon_col].min()
         max_horizon = model_out[horizon_col].max()
-        self.wide_horizon_cols = [f"{horizon_col}{h}" for h in range(min_horizon, max_horizon + 1)]
-        wide_model_out = (
-            model_out
-            .with_columns((horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
-            .pivot(on=horizon_col, index = self.key_cols, values = self.obs_col)
-        )
         self._build_train_X_y(min_horizon, max_horizon)
         
         transformed_model_out = (
