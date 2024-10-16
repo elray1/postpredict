@@ -6,6 +6,7 @@ import polars as pl
 from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
 
+
 class TimeDependencePostprocessor(abc.ABC):
     def __init__(self):
         pass
