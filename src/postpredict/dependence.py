@@ -3,7 +3,6 @@ import abc
 import numpy as np
 import polars as pl
 
-from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
 
 
@@ -32,6 +31,8 @@ class TimeDependencePostprocessor(abc.ABC):
         model_out: polars dataframe with sample predictions that do not
         necessarily capture temporal dependence.
         horizon_col: name of column in model_out that records the prediction horizon
+        pred_col: name of column in model_out with predicted values (samples)
+        idx_col: name of column in model_out with sample indices
         
         Returns
         -------
