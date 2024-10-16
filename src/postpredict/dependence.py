@@ -11,8 +11,7 @@ class TimeDependencePostprocessor(abc.ABC):
         pass
 
 
-    @abc.abstractmethod
-    def fit(self, **kwargs):
+    def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"], **kwargs):
         """
         Fit a model for temporal dependence across prediction horizons
 
@@ -40,7 +39,7 @@ class TimeDependencePostprocessor(abc.ABC):
         """
     
     
-    def apply_shuffle(self,
+    def _apply_shuffle(self,
                       wide_model_out: pl.DataFrame,
                       value_cols: list[str],
                       templates: np.ndarray) -> pl.DataFrame:
@@ -85,3 +84,133 @@ class TimeDependencePostprocessor(abc.ABC):
             shuffled_wmo[col_orderings[c], c] = shuffled_wmo[c]
         
         return shuffled_wmo
+
+
+    def _build_train_X_Y(self, min_horizon, max_horizon):
+        """
+        Build training set data frames self.train_X with features and
+        self.train_Y with observed values in windows from min_horizon to
+        max_horizon around each time point.
+        
+        Parameters
+        ----------
+        min_horizon: int
+            minimum prediction horizon
+        max_horizon: int
+            maximum prediction horizon
+        
+        Returns
+        -------
+        None
+        
+        Notes
+        -----
+        This method sets self.shift_varnames, self.train_X, and self.train_Y,
+        and it updates self.df to have new columns.
+        
+        It expects the object to have the properties self.df, self.key_cols,
+        self.time_col, self.obs_col, and self.feat_cols set already.
+        """
+        self.shift_varnames = []
+        for h in range(min_horizon, max_horizon + 1):
+            if h < 0:
+                shift_varname = self.obs_col + "_shift_m" + str(abs(h))
+            else:
+                shift_varname = self.obs_col + "_shift_p" + str(abs(h))
+            
+            if shift_varname not in self.shift_varnames:
+                self.shift_varnames.append(shift_varname)
+                self.df = self.df.with_columns(
+                    pl.col(self.obs_col)
+                    .shift(-h)
+                    .over(self.key_cols, order_by=self.time_col)
+                    .alias(shift_varname)
+                )
+        
+        df_dropnull = self.df.drop_nulls()
+        self.train_X = df_dropnull[self.feat_cols]
+        self.train_Y = df_dropnull[self.shift_varnames]
+
+
+    def _pivot_horizon(self, model_out, horizon_col, idx_col, pred_col):
+        """
+        Pivot horizon column wider, overwriting sample indices along the way
+        to reflect temporal dependence across horizons within key groups.
+        """
+        # check that within each group defined by self.key_cols, each horizon
+        # appears the same number of times.
+        min_horizon = model_out[horizon_col].min()
+        max_horizon = model_out[horizon_col].max()
+        expected_horizons = list(range(min_horizon, max_horizon + 1))
+
+        # To try to avoid column name collisions, we do a little namespacing
+        # with the prefix "postpredict_"
+        horizon_counts = (
+            model_out
+            .group_by(self.key_cols + [horizon_col])
+            .agg(pl.col(horizon_col).len().alias("postpredict_horizon_count"))
+        )
+        
+        # all horizons from min_horizon to max_horizon are present within all key_col groups
+        all_groups_match_expected = (
+            horizon_counts[self.key_cols + [horizon_col]]
+            .group_by(self.key_cols)
+            .all()
+            .with_columns(
+                pl.col(horizon_col)
+                .map_elements(lambda x: list(set(x).symmetric_difference(expected_horizons)) == [], return_dtype=bool)
+                .alias("matches_expected_horizons")
+            )
+            ["matches_expected_horizons"].all()
+        )
+        if not all_groups_match_expected:
+            raise ValueError("Within each key group, model_out must contain predictions at all integer horizons from the smallest to the largest present.")
+
+        # within each key_col group, each horizon appears the same number of times
+        n_unique_horizon_counts = (
+            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
+            .group_by(self.key_cols)
+            .n_unique()
+            ["postpredict_horizon_count"]
+        )
+        if any(n_unique_horizon_counts > 1):
+            raise ValueError("Within each key group, model_out must contain the same numer of predictions for each horizon.")
+
+        # replace sample indices to have repeated values across horizons within each key group,
+        # no repeated values across key groups
+        horizon_count_by_group = (
+            horizon_counts[self.key_cols + ["postpredict_horizon_count"]]
+            .group_by(self.key_cols)
+            .agg(pl.col("postpredict_horizon_count").first())
+        )
+        model_out = (
+            model_out
+            .join(
+                horizon_count_by_group.with_columns(
+                    postpredict_horizon_cum_count = pl.col("postpredict_horizon_count").cum_sum() - pl.col("postpredict_horizon_count")
+                ),
+                on = self.key_cols
+            )
+            .with_columns(
+                output_type_id = pl.arange(
+                    pl.col("postpredict_horizon_cum_count").first(),
+                    pl.col("postpredict_horizon_cum_count").first() + pl.col("postpredict_horizon_count").first()
+                )
+                .over(self.key_cols + [horizon_col])
+            )
+            .drop(["postpredict_horizon_count", "postpredict_horizon_cum_count"])
+        )
+        
+        # perform pivot operation, save resulting new column names to self
+        self.wide_horizon_cols = [f"postpredict_{horizon_col}{h}" for h in range(min_horizon, max_horizon + 1)]
+        wide_model_out = (
+            model_out
+            .with_columns(("postpredict_" + horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
+            .pivot(
+                on=horizon_col,
+                index=list(set(self.key_cols + [idx_col] + self.feat_cols)),
+                values=pred_col
+            )
+        )
+        
+        return wide_model_out
