@@ -1,12 +1,4 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
-#
-# The test case is based on the example given in Fig 2 of
-# Clark, Martyn, et al. "The Schaake shuffle: A method for reconstructing
-# space–time variability in forecasted precipitation and temperature fields."
-# Journal of Hydrometeorology 5.1 (2004): 243-262.
-#
-# However, we swap the roles of geographical units and time, as we are modeling
-# time dependence whereas that example is modeling spatial dependence.
 
 import polars as pl
 import pytest
@@ -21,34 +13,34 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
     
-    model_out = pl.concat([
-        long_model_out.with_columns(
-            population = 100
-        ),
-        long_model_out.with_columns(
-            age_group = pl.lit("old"),
-            value = pl.col("value") + 4,
-            population = 150
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            value = pl.col("value") + 12,
-            population = 200
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            age_group = pl.lit("old"),
-            value = pl.col("value") - 2,
-            population = 250
-        )
-    ])
+    # model_out = pl.concat([
+    #     long_model_out.with_columns(
+    #         population = 100
+    #     ),
+    #     long_model_out.with_columns(
+    #         age_group = pl.lit("old"),
+    #         value = pl.col("value") + 4,
+    #         population = 150
+    #     ),
+    #     long_model_out.with_columns(
+    #         location = pl.lit("b"),
+    #         value = pl.col("value") + 12,
+    #         population = 200
+    #     ),
+    #     long_model_out.with_columns(
+    #         location = pl.lit("b"),
+    #         age_group = pl.lit("old"),
+    #         value = pl.col("value") - 2,
+    #         population = 250
+    #     )
+    # ])
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
     tdp.feat_cols = ["location", "age_group", "population"]
     wide_model_out = tdp._pivot_horizon(
-        model_out=model_out,
+        model_out=long_model_out,
         horizon_col="horizon",
         idx_col="output_type_id",
         pred_col="value"
@@ -62,7 +54,7 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     for location in ["a", "b"]:
         for age_group in ["young", "old"]:
             expected_values = (
-                model_out
+                long_model_out
                 .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
                 [:, "value"]
                 .to_numpy()
@@ -93,31 +85,7 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
     
-    model_out = pl.concat([
-        long_model_out.with_columns(
-            horizon = pl.col("horizon") - 2,
-            population = 100
-        ),
-        long_model_out.with_columns(
-            age_group = pl.lit("old"),
-            value = pl.col("value") + 4,
-            horizon = pl.col("horizon") - 2,
-            population = 150
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            value = pl.col("value") + 12,
-            horizon = pl.col("horizon") - 2,
-            population = 200
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            age_group = pl.lit("old"),
-            value = pl.col("value") - 2,
-            horizon = pl.col("horizon") - 2,
-            population = 250
-        )
-    ])
+    model_out = long_model_out.with_columns(horizon = pl.col("horizon") - 2)
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -138,7 +106,7 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     for location in ["a", "b"]:
         for age_group in ["young", "old"]:
             expected_values = (
-                model_out
+                long_model_out
                 .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
                 [:, "value"]
                 .to_numpy()
@@ -168,27 +136,12 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
     
-    model_out = pl.concat([
-        long_model_out.with_columns(
-            population = 100
-        ).filter(pl.col("output_type_id") < 5),
-        long_model_out.with_columns(
-            age_group = pl.lit("old"),
-            value = pl.col("value") + 4,
-            population = 150
-        ).filter(pl.col("output_type_id") > 2),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            value = pl.col("value") + 12,
-            population = 200
-        ).filter(pl.col("output_type_id") < 7),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            age_group = pl.lit("old"),
-            value = pl.col("value") - 2,
-            population = 250
-        ).filter(pl.col("output_type_id") < 4)
-    ])
+    model_out = long_model_out.filter(
+        ((pl.col("location") == "a") & (pl.col("age_group") == "young") & (pl.col("output_type_id") < 5)) |
+        ((pl.col("location") == "a") & (pl.col("age_group") == "old") & (pl.col("output_type_id") > 2)) |
+        ((pl.col("location") == "b") & (pl.col("age_group") == "young") & (pl.col("output_type_id") < 7)) |
+        ((pl.col("location") == "b") & (pl.col("age_group") == "old") & (pl.col("output_type_id") < 4))
+    )
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -239,27 +192,13 @@ def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
     
-    model_out = pl.concat([
-        long_model_out.with_columns(
-            population = 100
-        ).filter((pl.col("output_type_id") < 5) | ((pl.col("output_type_id") < 7) & (pl.col("horizon") == 2))),
-        long_model_out.with_columns(
-            age_group = pl.lit("old"),
-            value = pl.col("value") + 4,
-            population = 150
-        ).filter(pl.col("output_type_id") > 2),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            value = pl.col("value") + 12,
-            population = 200
-        ).filter(pl.col("output_type_id") < 7),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            age_group = pl.lit("old"),
-            value = pl.col("value") - 2,
-            population = 250
-        ).filter(pl.col("output_type_id") < 4)
-    ])
+    model_out = long_model_out.filter(
+        ((pl.col("location") == "a") & (pl.col("age_group") == "young") &
+            ((pl.col("output_type_id") < 5) | ((pl.col("output_type_id") < 7) & (pl.col("horizon") == 2)))) |
+        ((pl.col("location") == "a") & (pl.col("age_group") == "old") & (pl.col("output_type_id") > 2)) |
+        ((pl.col("location") == "b") & (pl.col("age_group") == "young") & (pl.col("output_type_id") < 7)) |
+        ((pl.col("location") == "b") & (pl.col("age_group") == "old") & (pl.col("output_type_id") < 4))
+    )
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -282,27 +221,9 @@ def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
     
-    model_out = pl.concat([
-        long_model_out.with_columns(
-            population = 100
-        ).filter(pl.col("horizon") != 2),
-        long_model_out.with_columns(
-            age_group = pl.lit("old"),
-            value = pl.col("value") + 4,
-            population = 150
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            value = pl.col("value") + 12,
-            population = 200
-        ),
-        long_model_out.with_columns(
-            location = pl.lit("b"),
-            age_group = pl.lit("old"),
-            value = pl.col("value") - 2,
-            population = 250
-        )
-    ])
+    model_out = long_model_out.filter(
+        ~((pl.col("location") == "a") & (pl.col("age_group") == "young") & (pl.col("horizon") == 2))
+    )
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
