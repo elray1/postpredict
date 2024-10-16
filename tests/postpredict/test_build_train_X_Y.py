@@ -7,7 +7,7 @@ from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
 
 
-def test_build_train_X_y_positive_horizons(obs_data, monkeypatch):
+def test_build_train_X_Y_positive_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
@@ -39,7 +39,7 @@ def test_build_train_X_y_positive_horizons(obs_data, monkeypatch):
     assert_frame_equal(tdp.train_Y, expected_train_Y)
 
 
-def test_build_train_X_y_nonnegative_horizons(obs_data, monkeypatch):
+def test_build_train_X_Y_nonnegative_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
@@ -72,7 +72,7 @@ def test_build_train_X_y_nonnegative_horizons(obs_data, monkeypatch):
     assert_frame_equal(tdp.train_Y, expected_train_Y)
 
 
-def test_build_train_X_y_negative_horizons(obs_data, monkeypatch):
+def test_build_train_X_Y_negative_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
