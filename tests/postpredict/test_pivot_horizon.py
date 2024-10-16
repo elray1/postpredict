@@ -1,4 +1,4 @@
-# Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
+# Tests for postpredict.dependence.TimeDependencePostprocessor._pivot_horizon
 
 from itertools import product
 
@@ -10,7 +10,7 @@ from postpredict.dependence import TimeDependencePostprocessor
 def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -60,7 +60,7 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
 def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -111,7 +111,7 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
 def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -167,7 +167,7 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
 def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model_out, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -196,7 +196,7 @@ def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model
 def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()

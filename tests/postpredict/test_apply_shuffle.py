@@ -1,4 +1,4 @@
-# Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
+# Tests for postpredict.dependence.TimeDependencePostprocessor._apply_shuffle
 
 import polars as pl
 from polars.testing import assert_frame_equal
@@ -8,7 +8,7 @@ from postpredict.dependence import TimeDependencePostprocessor
 def test_apply_shuffle(wide_model_out, templates, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _apply_shuffle method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
