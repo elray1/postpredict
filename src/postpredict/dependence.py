@@ -3,8 +3,8 @@ import abc
 import numpy as np
 import polars as pl
 
+from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
-
 
 class TimeDependencePostprocessor(abc.ABC):
     def __init__(self):
@@ -21,22 +21,65 @@ class TimeDependencePostprocessor(abc.ABC):
         """
 
 
-    @abc.abstractmethod
-    def transform(self, model_out, **kwargs):
+    def transform(self, model_out, horizon_col="horizon", pred_col = "value", idx_col = "output_type_id"):
         """
-        Apply an estimated time dependence model to sample predictions to induce
+        Apply a postprocessing transformation to sample predictions to induce
         dependence across time in the predictive samples.
         
         Parameters
         ----------
         model_out: polars dataframe with sample predictions that do not
         necessarily capture temporal dependence.
+        horizon_col: name of column in model_out that records the prediction horizon
         
         Returns
         -------
         A copy of the model_out parameter, with sample indices updated so that
         they reflect the estimated temporal dependence structure.
         """
+        # pivot model_out from long to wide format and extract train_X and train_Y
+        wide_model_out = self._pivot_horizon(model_out, horizon_col, idx_col, pred_col)
+        min_horizon = model_out[horizon_col].min()
+        max_horizon = model_out[horizon_col].max()
+        self._build_train_X_Y(min_horizon, max_horizon)
+        
+        # perform the transformation, one group at a time
+        transformed_wide_model_out = (
+            wide_model_out
+            .group_by(*self.key_cols)
+            .map_groups(self._transform_one_group)
+        )
+        
+        # unpivot back to long format
+        pivot_index = [c for c in model_out.columns if c not in [horizon_col, pred_col]]
+        transformed_model_out = (
+            transformed_wide_model_out
+            .unpivot(
+                index = pivot_index,
+                on = self.wide_horizon_cols,
+                variable_name = horizon_col,
+                value_name = pred_col
+            )
+            .with_columns(
+                # convert horizon columns back to original values and data type
+                # this is inverting an operation that was done in _pivot_horizon just before the pivot
+                pl.col(horizon_col)
+                .str.slice(len("postpredict_") + len(horizon_col), None) # keep everything after f"postpredict_{horizon_col}" prefix
+                .cast(model_out[horizon_col].dtype)
+            )
+        )
+
+        return transformed_model_out
+
+
+    def _transform_one_group(self, wide_model_out):
+        templates = self._build_templates(wide_model_out)
+        transformed_model_out = self._apply_shuffle(
+            wide_model_out = wide_model_out,
+            value_cols = self.wide_horizon_cols,
+            templates = templates
+        )
+        return transformed_model_out
     
     
     def _apply_shuffle(self,
@@ -208,7 +251,7 @@ class TimeDependencePostprocessor(abc.ABC):
             .with_columns(("postpredict_" + horizon_col + pl.col(horizon_col).cast(str)).alias(horizon_col))
             .pivot(
                 on=horizon_col,
-                index=list(set(self.key_cols + [idx_col] + self.feat_cols)),
+                index=None,
                 values=pred_col
             )
         )
@@ -218,8 +261,8 @@ class TimeDependencePostprocessor(abc.ABC):
 
 
 class Schaake(TimeDependencePostprocessor):
-    def __init__(self, weighter_class=weighters.EqualWeighter, **kwargs) -> None:
-        self.weighter = weighter_class(**kwargs)
+    def __init__(self, weighter=weighters.EqualWeighter, **kwargs) -> None:
+        self.weighter = weighter(**kwargs)
 
 
     def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
@@ -246,45 +289,12 @@ class Schaake(TimeDependencePostprocessor):
         self.time_col = time_col
         self.obs_col = obs_col
         self.feat_cols = feat_cols
-
     
-    def transform(self, model_out, horizon_col="horizon", pred_col = "value", idx_col = "output_type_id"):
-        """
-        Apply the Schaake shuffle to sample predictions to induce dependence
-        across time in the predictive samples.
-        
-        Parameters
-        ----------
-        model_out: polars dataframe with sample predictions that do not
-        necessarily capture temporal dependence.
-        horizon_col: name of column in model_out that records the prediction horizon
-        
-        Returns
-        -------
-        A copy of the model_out parameter, with sample indices updated so that
-        they reflect the estimated temporal dependence structure.
-        """
-        wide_model_out = self._pivot_horizon(model_out, horizon_col, idx_col, pred_col)
-        min_horizon = model_out[horizon_col].min()
-        max_horizon = model_out[horizon_col].max()
-        self._build_train_X_y(min_horizon, max_horizon)
-        
-        transformed_model_out = (
-            wide_model_out
-            .group_by(self.key_cols)
-            .map_groups(self._transform_one_group)
-        )
-
-        return transformed_model_out
-
-
-    def _transform_one_group(self, wide_model_out):        
-        templates = self._build_templates(wide_model_out)
-        transformed_model_out = self.apply_shuffle(wide_model_out[self.wide_horizon_cols], templates, self.value_cols)
-        return transformed_model_out
-
-
+    
     def _build_templates(self, wide_model_out):
+        """
+        Build dependence templates 
+        """
         weights = self.weighter.get_weights(self.train_X, wide_model_out[0, self.feat_cols])
         selected_inds = np.random.choice(np.arange(self.train_y.shape[0]),
                                          size = wide_model_out.shape[0],

@@ -26,8 +26,8 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
+    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
+    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
@@ -78,8 +78,8 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type_id"] + [f"postpredict_horizon{h}" for h in range(-1, 2)])
+    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
+    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(-1, 2)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
@@ -134,8 +134,8 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
         pred_col="value"
     )
     
-    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type_id" + f"postpredict_horizon{h}"
-    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
+    # expected columns: everything in tdp.key_cols + tdp.feat_cols + "output_type" + "output_type_id" + f"postpredict_horizon{h}"
+    expected_cols = set(tdp.key_cols + tdp.feat_cols + ["output_type", "output_type_id"] + [f"postpredict_horizon{h}" for h in range(1, 4)])
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group

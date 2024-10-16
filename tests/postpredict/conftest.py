@@ -87,9 +87,63 @@ def templates():
     ])
 
 @pytest.fixture
+def wide_expected_final():
+    ef_group1 = pl.DataFrame({
+        "location": ["a"] * 10,
+        "population": [100.0] * 10,
+        "age_group": ["young"] * 10,
+        "output_type": ["sample"] * 10,
+        "output_type_id": list(range(10)),
+        "horizon1": [10.1, 8.8, 7.5, 10.3, 11.9, 15.3, 8.3, 9.7, 11.2, 12.5],
+        "horizon2": [9.3, 7.2, 6.3, 8.6, 13.5, 17.7, 7.9, 7.5, 11.8, 12.2],
+        "horizon3": [14.5, 15.6, 12.4, 16.3, 18.3, 23.9, 14.2, 13.5, 15.9, 17.6]
+    })
+    return pl.concat([
+        ef_group1,
+        ef_group1.with_columns(
+            age_group = pl.lit("old"),
+            output_type_id = pl.col("output_type_id") + 10,
+            horizon1 = pl.col("horizon1") + 4.0,
+            horizon2 = pl.col("horizon2") + 4.0,
+            horizon3 = pl.col("horizon3") + 4.0,
+            population = 150.0
+        ),
+        ef_group1.with_columns(
+            location = pl.lit("b"),
+            output_type_id = pl.col("output_type_id") + 20,
+            horizon1 = pl.col("horizon1") + 12.0,
+            horizon2 = pl.col("horizon2") + 12.0,
+            horizon3 = pl.col("horizon3") + 12.0,
+            population = 200.0
+        ),
+        ef_group1.with_columns(
+            location = pl.lit("b"),
+            age_group = pl.lit("old"),
+            output_type_id = pl.col("output_type_id") + 30,
+            horizon1 = pl.col("horizon1") - 2.0,
+            horizon2 = pl.col("horizon2") - 2.0,
+            horizon3 = pl.col("horizon3") - 2.0,
+            population = 250.0
+        )
+    ])
+
+@pytest.fixture
+def long_expected_final(wide_expected_final):
+    return (
+        wide_expected_final
+        .unpivot(
+            ["horizon1", "horizon2", "horizon3"],
+            index=["location", "population", "age_group", "output_type", "output_type_id"],
+            variable_name="horizon"
+        )
+        .with_columns(horizon=pl.col("horizon").str.slice(-1, 1).cast(int))
+    )
+
+@pytest.fixture
 def obs_data():
     return pl.DataFrame({
         "location": ["a"] * 20 + ["b"] * 20,
+        "population": [100.0] * 10 + [150.0] * 10 + [200.0] * 10 + [250.0] * 10,
         "age_group": (["young"] * 10 + ["old"] * 10) * 2,
         "date": [datetime.strptime("2020-01-01", "%Y-%m-%d") + timedelta(i) for i in range(10)] * 4,
         "value": list(range(10, 50))
