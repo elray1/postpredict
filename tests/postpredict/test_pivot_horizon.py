@@ -1,5 +1,7 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
 
+from itertools import product
+
 import polars as pl
 import pytest
 from postpredict.dependence import TimeDependencePostprocessor
@@ -12,28 +14,6 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
-    
-    # model_out = pl.concat([
-    #     long_model_out.with_columns(
-    #         population = 100
-    #     ),
-    #     long_model_out.with_columns(
-    #         age_group = pl.lit("old"),
-    #         value = pl.col("value") + 4,
-    #         population = 150
-    #     ),
-    #     long_model_out.with_columns(
-    #         location = pl.lit("b"),
-    #         value = pl.col("value") + 12,
-    #         population = 200
-    #     ),
-    #     long_model_out.with_columns(
-    #         location = pl.lit("b"),
-    #         age_group = pl.lit("old"),
-    #         value = pl.col("value") - 2,
-    #         population = 250
-    #     )
-    # ])
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -51,26 +31,26 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location in ["a", "b"]:
-        for age_group in ["young", "old"]:
-            expected_values = (
-                long_model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, "value"]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            actual_values = (
-                wide_model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, [f"postpredict_horizon{h}" for h in range(1, 4)]]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            
-            assert set(actual_values) == set(expected_values)
+    for location, age_group, h in product(["a", "b"], ["young", "old"], range(1, 4)):
+        expected_values = (
+            long_model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
+                    & (pl.col("horizon") == h))
+            [:, "value"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        actual_values = (
+            wide_model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            [:, f"postpredict_horizon{h}"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        
+        assert set(actual_values) == set(expected_values)
     
     # output_type_id different across different rows
     assert all(wide_model_out["output_type_id"].value_counts()["count"] == 1)
@@ -103,26 +83,26 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location in ["a", "b"]:
-        for age_group in ["young", "old"]:
-            expected_values = (
-                long_model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, "value"]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            actual_values = (
-                wide_model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, [f"postpredict_horizon{h}" for h in range(-1, 2)]]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            
-            assert set(actual_values) == set(expected_values)
+    for location, age_group, h in product(["a", "b"], ["young", "old"], range(-1, 2)):
+        expected_values = (
+            model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
+                    & (pl.col("horizon") == h))
+            [:, "value"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        actual_values = (
+            wide_model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            [:, f"postpredict_horizon{h}"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        
+        assert set(actual_values) == set(expected_values)
     
     # output_type_id different across different rows
     assert all(wide_model_out["output_type_id"].value_counts()["count"] == 1)
@@ -159,26 +139,26 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     assert set(wide_model_out.columns) == expected_cols
     
     # same values within each horizon/group
-    for location in ["a", "b"]:
-        for age_group in ["young", "old"]:
-            expected_values = (
-                model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, "value"]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            actual_values = (
-                wide_model_out
-                .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
-                [:, [f"postpredict_horizon{h}" for h in range(1, 4)]]
-                .to_numpy()
-                .flatten()
-                .tolist()
-            )
-            
-            assert set(actual_values) == set(expected_values)
+    for location, age_group, h in product(["a", "b"], ["young", "old"], range(1, 4)):
+        expected_values = (
+            model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group)
+                    & (pl.col("horizon") == h))
+            [:, "value"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        actual_values = (
+            wide_model_out
+            .filter((pl.col("location") == location) & (pl.col("age_group") == age_group))
+            [:, f"postpredict_horizon{h}"]
+            .to_numpy()
+            .flatten()
+            .tolist()
+        )
+        
+        assert set(actual_values) == set(expected_values)
     
     # output_type_id different across different rows
     assert all(wide_model_out["output_type_id"].value_counts()["count"] == 1)
