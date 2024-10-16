@@ -3,7 +3,6 @@ import abc
 import numpy as np
 import polars as pl
 
-from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
 
 

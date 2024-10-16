@@ -1,12 +1,4 @@
-# Tests for postpredict.dependence.TimeDependencePostprocessor.apply_shuffle
-#
-# The test case is based on the example given in Fig 2 of
-# Clark, Martyn, et al. "The Schaake shuffle: A method for reconstructing
-# space–time variability in forecasted precipitation and temperature fields."
-# Journal of Hydrometeorology 5.1 (2004): 243-262.
-#
-# However, we swap the roles of geographical units and time, as we are modeling
-# time dependence whereas that example is modeling spatial dependence.
+# Tests for postpredict.dependence.TimeDependencePostprocessor._build_train_X_Y
 
 from datetime import datetime, timedelta
 
@@ -18,7 +10,7 @@ from postpredict.dependence import TimeDependencePostprocessor
 def test_build_train_X_y_positive_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -50,7 +42,7 @@ def test_build_train_X_y_positive_horizons(obs_data, monkeypatch):
 def test_build_train_X_y_nonnegative_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
@@ -83,7 +75,7 @@ def test_build_train_X_y_nonnegative_horizons(obs_data, monkeypatch):
 def test_build_train_X_y_negative_horizons(obs_data, monkeypatch):
     # we use monkeypatch to remove abstract methods from the
     # TimeDependencePostprocessor class, allowing us to create an object of
-    # that class so as to test the non-abstract apply_shuffle method it defines.
+    # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor()
