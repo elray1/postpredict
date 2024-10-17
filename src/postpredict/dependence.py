@@ -8,8 +8,8 @@ from postpredict.util import argsort_random_tiebreak
 
 
 class TimeDependencePostprocessor(abc.ABC):
-    def __init__(self):
-        pass
+    def __init__(self, rng: np.random.Generator):
+        self.rng = rng
 
 
     @abc.abstractmethod
@@ -139,7 +139,7 @@ class TimeDependencePostprocessor(abc.ABC):
         these might be called `horizon1` through `horizon4`.
         """
         col_orderings = {
-            c: argsort_random_tiebreak(templates[:, i]) \
+            c: argsort_random_tiebreak(templates[:, i], rng = self.rng) \
             for i, c in enumerate(value_cols)
         }
 
@@ -283,8 +283,10 @@ class TimeDependencePostprocessor(abc.ABC):
 
 
 class Schaake(TimeDependencePostprocessor):
-    def __init__(self, weighter=weighters.EqualWeighter()) -> None:
+    def __init__(self, weighter=weighters.EqualWeighter(),
+                 rng: np.random.Generator = np.random.default_rng()) -> None:
         self.weighter = weighter
+        super().__init__(rng)
 
 
     def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
@@ -323,8 +325,7 @@ class Schaake(TimeDependencePostprocessor):
         # draw one sample from each distribution in a batch of (n_test,)
         # categorical distributions, each over the n_train categories
         # representing sequences in rows of self.train_Y
-        rng = np.random.default_rng()
-        selected_inds = [rng.choice(weights.shape[1], size=1, p=weights[i, :])[0] \
+        selected_inds = [self.rng.choice(weights.shape[1], size=1, p=weights[i, :])[0] \
                          for i in range(weights.shape[0])]
 
         # get the templates

@@ -105,3 +105,26 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
                                 * (1 - freq_diffs.filter(pl.col("weight") > 0)["weight"])
                                 / (wide_model_out.shape[0] * n_times / 2))
         )
+
+
+def test_schaake_build_templates_reproducible(obs_data, wide_model_out):
+    ss = Schaake(rng = np.random.default_rng(42))
+    ss.df = obs_data
+    ss.key_cols = ["location", "age_group"]
+    ss.time_col = "date",
+    ss.obs_col = "value"
+    ss.feat_cols = ["location", "age_group"]
+    ss._build_train_X_Y(1, 4)
+    n_times = 1000
+    templates_1 = ss._build_templates(pl.concat([wide_model_out] * n_times))
+
+    ss = Schaake(rng = np.random.default_rng(42))
+    ss.df = obs_data
+    ss.key_cols = ["location", "age_group"]
+    ss.time_col = "date",
+    ss.obs_col = "value"
+    ss.feat_cols = ["location", "age_group"]
+    ss._build_train_X_Y(1, 4)
+    templates_2 = ss._build_templates(pl.concat([wide_model_out] * n_times))
+
+    assert np.all(templates_1 == templates_2)
