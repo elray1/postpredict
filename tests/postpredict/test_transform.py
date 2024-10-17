@@ -14,6 +14,10 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     # define a concrete subclass of TimeDependencePostprocessor whose
     # _build_templates method returns the templates fixture
     class TestPostprocessor(TimeDependencePostprocessor):
+        def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
+            pass
+        
+        
         def _build_templates(self, wide_model_out):
             return templates
     

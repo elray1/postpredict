@@ -6,7 +6,7 @@ class EqualWeighter():
         pass
     
     
-    def get_weights(train_X, test_X):
+    def get_weights(self, train_X, test_X):
         """
         Compute training set observation weights.
         
@@ -15,7 +15,7 @@ class EqualWeighter():
         train_X: dataframe or array of shape (n_train, p)
             Training set features used for weighting. There is one row for each
             training set instance and one column for each of the p features.
-        test_X: dataframe or array of shape (1, p)
+        test_X: dataframe or array of shape (n_test, p)
             Test set features used for weighting. There is one row and one
             column for each of the p features.
         
@@ -25,4 +25,5 @@ class EqualWeighter():
         instance, where weights sum to 1.
         """
         n_train = train_X.shape[0]
-        return np.full(n_train, 1 / n_train)
+        n_test = test_X.shape[0]
+        return np.full((n_test, n_train), 1 / n_train)

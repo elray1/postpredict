@@ -3,21 +3,40 @@ import abc
 import numpy as np
 import polars as pl
 
+from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
-
 
 class TimeDependencePostprocessor(abc.ABC):
     def __init__(self):
         pass
 
 
+    @abc.abstractmethod
     def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"], **kwargs):
         """
-        Fit a model for temporal dependence across prediction horizons
+        Fit a model for temporal dependence across prediction horizons.
 
         Returns
         -------
         None
+        """
+
+
+    @abc.abstractmethod
+    def _build_templates(self, wide_model_out):
+        """
+        Build dependence templates.
+        
+        Parameters
+        ----------
+        wide_model_out: pl.DataFrame
+            Model output with sample predictions that do not necessarily capture
+            temporal dependence.
+        
+        Returns
+        -------
+        templates: np.ndarray
+            Dependence templates of shape (wide_model_out.shape[0], self.train_Y.shape[1])
         """
 
 
@@ -259,3 +278,54 @@ class TimeDependencePostprocessor(abc.ABC):
         )
         
         return wide_model_out
+
+
+
+class Schaake(TimeDependencePostprocessor):
+    def __init__(self, weighter=weighters.EqualWeighter, **kwargs) -> None:
+        self.weighter = weighter(**kwargs)
+
+
+    def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
+        """
+        Fit a Schaake shuffle model for temporal dependence across prediction
+        horizons. In practice this just involves saving the input arguments for
+        later use; the Schaake shuffle does not require any parameter estimation.
+        
+        Parameters
+        ----------
+        df: polars dataframe with training set observations.
+        key_cols: names of columns in `df` used to identify observational units,
+        e.g. location or age group.
+        time_col: name of column in `df` that contains the time index.
+        obs_col: name of column in `df` that contains observed values.
+        feat_cols: names of columns in `df` with features
+        
+        Returns
+        -------
+        None
+        """
+        self.df = df
+        self.key_cols = key_cols
+        self.time_col = time_col
+        self.obs_col = obs_col
+        self.feat_cols = feat_cols
+    
+    
+    def _build_templates(self, wide_model_out):
+        """
+        Build dependence templates for use with the Schaake shuffle.
+        """
+        # weights shape is (n_test, n_train)
+        weights = self.weighter.get_weights(self.train_X, wide_model_out[:, self.feat_cols])
+
+        # draw one sample from each distribution in a batch of (n_test,)
+        # categorical distributions, each over the n_train categories
+        # representing sequences in rows of self.train_Y
+        rng = np.random.default_rng()
+        selected_inds = [rng.choice(weights.shape[1], size=1, p=weights[i, :])[0] \
+                         for i in range(weights.shape[0])]
+
+        # get the templates
+        templates = self.train_Y[selected_inds, :]
+        return templates

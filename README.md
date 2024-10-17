@@ -108,5 +108,5 @@ To add or remove a project dependency:
     #
     # alternately, you can use uv to install the dependencies: it is faster and has a
     # a handy sync option that will cleanup unused dependencies
-    uv pip sync requirements/requirements-dev.txt
+    uv pip sync requirements/requirements-dev.txt && python -m pip install -e .
     ```
