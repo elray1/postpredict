@@ -12,7 +12,8 @@ dynamic = ["version"]
 
 dependencies = [
     "numpy",
-    "polars"
+    "polars",
+    "scikit-learn"
 ]
 
 [project.optional-dependencies]
