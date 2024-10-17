@@ -1,5 +1,6 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor.transform
 
+import numpy as np
 import polars as pl
 from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
@@ -14,10 +15,14 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
     # define a concrete subclass of TimeDependencePostprocessor whose
     # _build_templates method returns the templates fixture
     class TestPostprocessor(TimeDependencePostprocessor):
+        def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):
+            pass
+        
+        
         def _build_templates(self, wide_model_out):
             return templates
     
-    tdp = TestPostprocessor()
+    tdp = TestPostprocessor(rng = np.random.default_rng(42))
     tdp.df = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",

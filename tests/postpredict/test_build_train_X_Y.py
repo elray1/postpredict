@@ -2,6 +2,7 @@
 
 from datetime import datetime, timedelta
 
+import numpy as np
 import polars as pl
 from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
@@ -13,7 +14,7 @@ def test_build_train_X_Y_positive_horizons(obs_data, monkeypatch):
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     tdp.df = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -45,7 +46,7 @@ def test_build_train_X_Y_nonnegative_horizons(obs_data, monkeypatch):
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     tdp.df = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -78,7 +79,7 @@ def test_build_train_X_Y_negative_horizons(obs_data, monkeypatch):
     # that class so as to test the non-abstract _build_train_X_Y method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     tdp.df = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",

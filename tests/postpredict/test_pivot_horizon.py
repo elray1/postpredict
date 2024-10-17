@@ -2,6 +2,7 @@
 
 from itertools import product
 
+import numpy as np
 import polars as pl
 import pytest
 from postpredict.dependence import TimeDependencePostprocessor
@@ -13,7 +14,7 @@ def test_pivot_horizon_positive_horizon(long_model_out, monkeypatch):
     # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
@@ -63,7 +64,7 @@ def test_pivot_horizon_negative_horizon(long_model_out, monkeypatch):
     # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     model_out = long_model_out.with_columns(horizon = pl.col("horizon") - 2)
     
@@ -114,7 +115,7 @@ def test_pivot_horizon_diff_sample_count_by_group(long_model_out, monkeypatch):
     # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     model_out = long_model_out.filter(
         ((pl.col("location") == "a") & (pl.col("age_group") == "young") & (pl.col("output_type_id") < 5)) |
@@ -170,7 +171,7 @@ def test_pivot_horizon_diff_sample_count_by_horizon_same_group_errors(long_model
     # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     model_out = long_model_out.filter(
         ((pl.col("location") == "a") & (pl.col("age_group") == "young") &
@@ -199,7 +200,7 @@ def test_pivot_horizon_missing_horizon_errors(long_model_out, monkeypatch):
     # that class so as to test the non-abstract _pivot_horizon method it defines.
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
-    tdp = TimeDependencePostprocessor()
+    tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
     
     model_out = long_model_out.filter(
         ~((pl.col("location") == "a") & (pl.col("age_group") == "young") & (pl.col("horizon") == 2))

@@ -14,6 +14,18 @@ def test_argsort_random_tiebreak():
         (3, 1, 4, 0, 2)
     }
     
-    actual_argsorts = [tuple(argsort_random_tiebreak(arr).tolist()) for i in range(1000)]
+    rng = np.random.default_rng(42)
+    actual_argsorts = [tuple(argsort_random_tiebreak(arr, rng).tolist()) for i in range(1000)]
     
     assert valid_argsorts == set(actual_argsorts)
+
+
+def test_argsort_random_tiebreak_reproducible():
+    arr = np.array([2, 1, 3, 1, 2])
+
+    rng = np.random.default_rng(42)
+    actual_argsorts_1 = [tuple(argsort_random_tiebreak(arr, rng).tolist()) for i in range(1000)]
+    rng = np.random.default_rng(42)
+    actual_argsorts_2 = [tuple(argsort_random_tiebreak(arr, rng).tolist()) for i in range(1000)]
+    
+    assert actual_argsorts_1 == actual_argsorts_2

@@ -11,8 +11,8 @@ classifiers = [
 dynamic = ["version"]
 
 dependencies = [
-    "polars",
-    "numpy"
+    "numpy",
+    "polars"
 ]
 
 [project.optional-dependencies]
