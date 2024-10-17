@@ -283,8 +283,8 @@ class TimeDependencePostprocessor(abc.ABC):
 
 
 class Schaake(TimeDependencePostprocessor):
-    def __init__(self, weighter=weighters.EqualWeighter, **kwargs) -> None:
-        self.weighter = weighter(**kwargs)
+    def __init__(self, weighter=weighters.EqualWeighter()) -> None:
+        self.weighter = weighter
 
 
     def fit(self, df, key_cols=None, time_col="date", obs_col="value", feat_cols=["date"]):

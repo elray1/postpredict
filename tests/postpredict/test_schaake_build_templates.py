@@ -49,7 +49,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
             weights = weights / np.sum(weights, axis = 1)[:, np.newaxis]
             return weights
     
-    ss = Schaake(weighter = PopSizeWeighter)
+    ss = Schaake(weighter = PopSizeWeighter())
     ss.df = obs_data
     ss.key_cols = ["location", "age_group"]
     ss.time_col = "date",
