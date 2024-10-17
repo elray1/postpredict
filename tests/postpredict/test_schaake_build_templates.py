@@ -1,10 +1,9 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor.transform
 
+from datetime import datetime, timedelta
+
 import numpy as np
 import polars as pl
-
-from datetime import datetime, timedelta
-from polars.testing import assert_frame_equal
 from postpredict.dependence import Schaake
 
 
@@ -26,13 +25,13 @@ def test_schaake_build_templates_equal_weights(obs_data, wide_model_out):
     n_times = 1000
     templates = ss._build_templates(pl.concat([wide_model_out] * n_times))
     freq_diffs = (
-        templates['value_shift_p1']
+        templates["value_shift_p1"]
         .value_counts()
         .with_columns(
             (pl.col("count") / (wide_model_out.shape[0] * n_times) - 1 / 24).alias("freq_diff")
         )
     )
-    assert all(np.abs(freq_diffs['freq_diff']) < 4.417 * np.sqrt(1/24 * (1 - 1/24) / (wide_model_out.shape[0] * n_times)))
+    assert all(np.abs(freq_diffs["freq_diff"]) < 4.417 * np.sqrt(1/24 * (1 - 1/24) / (wide_model_out.shape[0] * n_times)))
 
 
 def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
@@ -44,8 +43,8 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
         
         def get_weights(self, train_X, test_X):
             weights = (
-                (np.expand_dims(test_X['age_group'].to_numpy(), -1) == np.expand_dims(train_X['age_group'].to_numpy(), 0))
-                * np.expand_dims(train_X['population'].to_numpy(), 0)
+                (np.expand_dims(test_X["age_group"].to_numpy(), -1) == np.expand_dims(train_X["age_group"].to_numpy(), 0))
+                * np.expand_dims(train_X["population"].to_numpy(), 0)
             )
             weights = weights / np.sum(weights, axis = 1)[:, np.newaxis]
             return weights
@@ -81,7 +80,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
         )
         actual_freqs = (
             templates.filter(test_wmo["age_group"] == age_group)
-            ['value_shift_p0']
+            ["value_shift_p0"]
             .value_counts()
             .with_columns(
                 (pl.col("count") / (wide_model_out.shape[0] * n_times / 2)).alias("freq")
@@ -101,8 +100,8 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
         assert all(~freq_diffs.filter(pl.col("weight") > 0)["freq"].is_null())
         # in rows with non-zero weight, empirical frequencies are close to expected
         assert all(
-            np.abs(freq_diffs.filter(pl.col("weight") > 0)['freq_diff'])
-            < 4.417 * np.sqrt(freq_diffs.filter(pl.col("weight") > 0)['weight']
-                                * (1 - freq_diffs.filter(pl.col("weight") > 0)['weight'])
+            np.abs(freq_diffs.filter(pl.col("weight") > 0)["freq_diff"])
+            < 4.417 * np.sqrt(freq_diffs.filter(pl.col("weight") > 0)["weight"]
+                                * (1 - freq_diffs.filter(pl.col("weight") > 0)["weight"])
                                 / (wide_model_out.shape[0] * n_times / 2))
         )
