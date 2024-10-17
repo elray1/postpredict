@@ -12,6 +12,8 @@ identify==2.5.36
     # via pre-commit
 iniconfig==2.0.0
     # via pytest
+joblib==1.4.2
+    # via scikit-learn
 mypy==1.10.0
     # via postpredict (pyproject.toml)
 mypy-extensions==1.0.0
@@ -19,7 +21,10 @@ mypy-extensions==1.0.0
 nodeenv==1.8.0
     # via pre-commit
 numpy==2.1.2
-    # via postpredict (pyproject.toml)
+    # via
+    #   postpredict (pyproject.toml)
+    #   scikit-learn
+    #   scipy
 packaging==24.0
     # via pytest
 platformdirs==4.2.1
@@ -40,8 +45,14 @@ pyyaml==6.0.1
     # via pre-commit
 ruff==0.4.3
     # via postpredict (pyproject.toml)
+scikit-learn==1.5.2
+    # via postpredict (pyproject.toml)
+scipy==1.14.1
+    # via scikit-learn
 setuptools==75.1.0
     # via nodeenv
+threadpoolctl==3.5.0
+    # via scikit-learn
 toml==0.10.2
     # via postpredict (pyproject.toml)
 types-toml==0.10.8.20240310
