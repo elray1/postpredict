@@ -1,8 +1,9 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor._apply_shuffle
 
+from datetime import datetime
+
 import numpy as np
 import polars as pl
-from datetime import datetime
 from polars.testing import assert_frame_equal
 from postpredict.dependence import TimeDependencePostprocessor
 

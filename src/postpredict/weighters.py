@@ -40,7 +40,7 @@ class EqualWeighter():
 class UnivariateGaussianKernel():
     def __init__(self, h):
         self.parameters = {
-            'h': Parameter(
+            "h": Parameter(
                     value = h,
                     trainable = True
                 )
@@ -66,6 +66,5 @@ class UnivariateGaussianKernel():
         instance, where weights sum to 1 within each row.
         """
         n_train = train_X.shape[0]
-        n_test = test_X.shape[0]
-        prop_weights = np.exp(-0.5 / self.parameters['h'].value * (test_X - train_X.reshape(1, n_train))**2)
+        prop_weights = np.exp(-0.5 / self.parameters["h"].value * (test_X - train_X.reshape(1, n_train))**2)
         return prop_weights / np.sum(prop_weights, axis = 1, keepdims = True)

@@ -1,11 +1,11 @@
 # Tests for postpredict.dependence.TimeDependencePostprocessor._pivot_horizon
 
+from datetime import datetime
 from itertools import product
 
 import numpy as np
 import polars as pl
 import pytest
-from datetime import datetime
 from postpredict.dependence import TimeDependencePostprocessor
 
 
