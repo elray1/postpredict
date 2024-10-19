@@ -1,6 +1,7 @@
 import collections
 
 import numpy as np
+import polars as pl
 
 
 class Parameter(collections.UserDict):
@@ -65,6 +66,11 @@ class UnivariateGaussianKernel():
         numpy array of shape (n_test, n_train) with weights for each training set
         instance, where weights sum to 1 within each row.
         """
-        n_train = train_X.shape[0]
-        prop_weights = np.exp(-0.5 / self.parameters["h"].value * (test_X - train_X.reshape(1, n_train))**2)
+        if isinstance(train_X, pl.DataFrame):
+            train_X = train_X.to_numpy()
+
+        if isinstance(test_X, pl.DataFrame):
+            test_X = test_X.to_numpy()
+
+        prop_weights = np.exp(-0.5 / self.parameters["h"].value * (test_X - train_X.transpose())**2)
         return prop_weights / np.sum(prop_weights, axis = 1, keepdims = True)

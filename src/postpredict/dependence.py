@@ -36,7 +36,7 @@ class TimeDependencePostprocessor(abc.ABC):
         
         Returns
         -------
-        templates: np.ndarray
+        templates: pl.DataFrame
             Dependence templates of shape (wide_model_out.shape[0], self.train_Y.shape[1])
         """
 
@@ -45,7 +45,8 @@ class TimeDependencePostprocessor(abc.ABC):
                   reference_time_col: str = "reference_date",
                   horizon_col: str = "horizon", pred_col: str = "value",
                   idx_col: str = "output_type_id",
-                  obs_mask: np.ndarray | None = None):
+                  obs_mask: np.ndarray | None = None,
+                  return_long_format: bool = True):
         """
         Apply a postprocessing transformation to sample predictions to induce
         dependence across time in the predictive samples.
@@ -71,6 +72,9 @@ class TimeDependencePostprocessor(abc.ABC):
             array of shape (self.df.shape[0], ). Rows of self.df where obs_mask
             is True will be used, while rows of self.df where obs_mask is False
             will not be used.
+        return_long_format: bool
+            If True, return long format. If False, return wide format with
+            horizon pivoted into columns.
         
         Returns
         -------
@@ -93,6 +97,9 @@ class TimeDependencePostprocessor(abc.ABC):
             .map_groups(self._transform_one_group)
         )
         
+        if not return_long_format:
+            return transformed_wide_model_out
+        
         # unpivot back to long format
         pivot_index = [c for c in model_out.columns if c not in [horizon_col, pred_col]]
         transformed_model_out = (
@@ -111,12 +118,12 @@ class TimeDependencePostprocessor(abc.ABC):
                 .cast(model_out[horizon_col].dtype)
             )
         )
-
+        
         return transformed_model_out
 
 
     def _transform_one_group(self, wide_model_out):
-        templates = self._build_templates(wide_model_out)
+        templates = self._build_templates(wide_model_out).to_numpy()
         transformed_model_out = self._apply_shuffle(
             wide_model_out = wide_model_out,
             value_cols = self.wide_horizon_cols,
@@ -362,4 +369,5 @@ class Schaake(TimeDependencePostprocessor):
 
         # get the templates
         templates = self.train_Y[selected_inds, :]
+        
         return templates

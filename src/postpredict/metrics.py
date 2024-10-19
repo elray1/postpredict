@@ -54,8 +54,14 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
         
         See 
         """
-        score = np.mean(pairwise_distances(df[pred_cols], df[0, obs_cols])) \
-            - 0.5 * np.mean(pairwise_distances(df[pred_cols]))
+        if df[pred_cols + obs_cols].null_count().to_numpy().sum() > 0:
+            # Return np.nan rather than None here to avoid a rare schema
+            # error when the first processed group would yield None.
+            score = np.nan
+        else:
+            score = np.mean(pairwise_distances(df[pred_cols], df[0, obs_cols])) \
+                - 0.5 * np.mean(pairwise_distances(df[pred_cols]))
+        
         return df[0, key_cols].with_columns(energy_score = pl.lit(score))
     
     scores_by_unit = (
@@ -68,4 +74,5 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     if not reduce_mean:
         return scores_by_unit
     
-    return scores_by_unit["energy_score"].mean()
+    # replace NaN with None to average only across non-missing values
+    return scores_by_unit["energy_score"].fill_nan(None).mean()
