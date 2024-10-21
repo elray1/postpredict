@@ -51,8 +51,6 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
         Compute energy score for one observational unit based on a collection of
         samples. Note, we define this function here so that key_cols, pred_cols
         and obs_cols are in scope.
-        
-        See 
         """
         if df[pred_cols + obs_cols].null_count().to_numpy().sum() > 0:
             # Return np.nan rather than None here to avoid a rare schema
@@ -76,3 +74,59 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     
     # replace NaN with None to average only across non-missing values
     return scores_by_unit["energy_score"].fill_nan(None).mean()
+
+
+def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
+                 key_cols: list[str] | None, pred_cols: list[str], obs_cols: list[str],
+                 reduce_mean: bool = True) -> float | pl.DataFrame:
+    """
+    Compute the probability integral transform (PIT) value for each of a
+    collection of marginal predictive distributions represented by a set of
+    samples.
+    
+    Parameters
+    ----------
+    model_out_wide: pl.DataFrame
+        DataFrame of model outputs where each row corresponds to one
+        (multivariate) sample from a multivariate distribution for one
+        observational unit.
+    obs_data_wide: pl.DataFrame
+        DataFrame of observed values where each row corresponds to one
+        (multivariate) observed outcome for one observational unit.
+    key_cols: list[str]
+        Columns that appear in both `model_out_wide` and `obs_data_wide` that
+        identify observational units.
+    pred_cols: list[str]
+        Columns that appear in `model_out_wide` and identify predicted (sampled)
+        values. The order of these should match the order of `obs_cols`.
+    obs_cols: list[str]
+        Columns that appear in `obs_data_wide` and identify observed values. The
+        order of these should match the order of `pred_cols`.
+    reduce_mean: bool = True
+        Indicator of whether to return a numeric mean energy score (default) or
+        a pl.DataFrame with one row per observational unit.
+    
+    Returns
+    -------
+    A pl.DataFrame with one row per observational unit and PIT values stored in
+    columns named according to `[f"pit_{c}" for c in pred_cols]`.
+    
+    Notes
+    -----
+    Here, the PIT value is calculated as the proportion of samples that are less
+    than or equal to the observed value.
+    """
+    scores_by_unit = (
+        model_out_wide
+        .join(obs_data_wide, on = key_cols)
+        .group_by(key_cols)
+        .agg(
+            [
+                (pl.col(pred_c) <= pl.col(obs_c)).mean().alias(f"pit_{pred_c}") \
+                for pred_c, obs_c in zip(pred_cols, obs_cols)
+            ]
+        )
+        .select(key_cols + [f"pit_{pred_c}" for pred_c in pred_cols])
+    )
+
+    return scores_by_unit
