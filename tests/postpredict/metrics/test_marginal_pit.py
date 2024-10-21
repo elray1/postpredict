@@ -4,7 +4,6 @@ from datetime import datetime
 
 import numpy as np
 import polars as pl
-import pytest
 from polars.testing import assert_frame_equal
 from postpredict.metrics import marginal_pit
 
@@ -43,7 +42,8 @@ def test_marginal_pit():
         "value_lead3": [5.0, 2.0, 10.0, 14.1]
     })
     
-    # expected scores calculated in R using the scoringRules package:
+    # expected PIT values: the number of samples less than or equal to
+    # corresponding observed values
     expected_scores_df = pl.DataFrame({
         "location": ["a", "b"],
         "date": [datetime.strptime("2024-10-01", "%Y-%m-%d"),
@@ -59,7 +59,5 @@ def test_marginal_pit():
                                     pred_cols=["horizon1", "horizon2", "horizon3"],
                                     obs_cols=["value_lead1", "value_lead2", "value_lead3"],
                                     reduce_mean=False)
-                                    
-    print(actual_scores_df)
     
     assert_frame_equal(actual_scores_df, expected_scores_df, check_row_order=False, atol=1e-19)
