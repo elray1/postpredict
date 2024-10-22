@@ -55,7 +55,7 @@ def test_marginal_pit():
     
     actual_scores_df = marginal_pit(model_out_wide=model_out_wide,
                                     obs_data_wide=obs_data_wide,
-                                    key_cols=["location", "date"],
+                                    index_cols=["location", "date"],
                                     pred_cols=["horizon1", "horizon2", "horizon3"],
                                     obs_cols=["value_lead1", "value_lead2", "value_lead3"])
     
