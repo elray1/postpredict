@@ -5,6 +5,7 @@ import polars as pl
 
 from postpredict import weighters
 from postpredict.util import argsort_random_tiebreak
+from postpredict.metrics import marginal_pit
 
 
 class TimeDependencePostprocessor(abc.ABC):
@@ -46,6 +47,7 @@ class TimeDependencePostprocessor(abc.ABC):
                   horizon_col: str = "horizon", pred_col: str = "value",
                   idx_col: str = "output_type_id",
                   obs_mask: np.ndarray | None = None,
+                  pit_templates: bool = False,
                   return_long_format: bool = True):
         """
         Apply a postprocessing transformation to sample predictions to induce
@@ -72,6 +74,9 @@ class TimeDependencePostprocessor(abc.ABC):
             array of shape (self.df.shape[0], ). Rows of self.df where obs_mask
             is True will be used, while rows of self.df where obs_mask is False
             will not be used.
+        pit_templates: bool
+            If False (default), templates are based on observed values. If True,
+            templates are based on PIT values for past forecasts.
         return_long_format: bool
             If True, return long format. If False, return wide format with
             horizon pivoted into columns.
@@ -88,7 +93,11 @@ class TimeDependencePostprocessor(abc.ABC):
         max_horizon = model_out[horizon_col].max()
         
         # extract train_X and train_Y from observed data (self.df)
-        self._build_train_X_Y(min_horizon, max_horizon, obs_mask)
+        if pit_templates:
+            self._build_train_X_Y_pit(min_horizon, max_horizon, obs_mask,
+                                      wide_model_out)
+        else:
+            self._build_train_X_Y_obs(min_horizon, max_horizon, obs_mask)
         
         # perform the transformation, one group at a time
         transformed_wide_model_out = (
@@ -179,12 +188,14 @@ class TimeDependencePostprocessor(abc.ABC):
         return shuffled_wmo
 
 
-    def _build_train_X_Y(self, min_horizon, max_horizon,
-                         obs_mask: np.ndarray | None = None):
+    def _build_train_X_Y(self, min_horizon: int, max_horizon: int,
+                         obs_mask: np.ndarray | None = None,
+                         wide_model_out: pl.DataFrame,
+                         pit_templates: bool) -> None:
         """
         Build training set data frames self.train_X with features and
-        self.train_Y with observed values in windows from min_horizon to
-        max_horizon around each time point.
+        self.train_Y with candidate dependence templates based on PIT values
+        derived from past forecasts.
         
         Parameters
         ----------
@@ -199,6 +210,12 @@ class TimeDependencePostprocessor(abc.ABC):
             array of shape (self.df.shape[0], ). Rows of self.df where obs_mask
             is True will be used, while rows of self.df where obs_mask is False
             will not be used.
+        wide_model_out: pl.DataFrame
+            polars dataframe with sample predictions that do not necessarily
+            capture temporal dependence, in wide format with horizons in columns.
+        pit_templates: bool
+            If False (default), templates are based on observed values. If True,
+            templates are based on PIT values for past forecasts.
         
         Returns
         -------
@@ -231,6 +248,21 @@ class TimeDependencePostprocessor(abc.ABC):
         if obs_mask is None:
             obs_mask = True
         df_mask_and_dropnull = self.df.filter(obs_mask).drop_nulls()
+
+        if pit_templates:
+            pit_values = marginal_pit(
+                model_out_wide = wide_model_out,
+                obs_data_wide = df_mask_and_dropnull,
+                key_cols = ,
+                pred_cols = ,
+                obs_cols = 
+            )
+            train_X_Y_source = pit_values
+            train_Y_cols = pit_colnames
+        else:
+            train_X_Y_source = df_mask_and_dropnull
+            train_Y_cols = self.shift_varnames
+        
         self.train_X = df_mask_and_dropnull[self.feat_cols]
         self.train_Y = df_mask_and_dropnull[self.shift_varnames]
 
