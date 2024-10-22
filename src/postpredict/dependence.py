@@ -36,7 +36,7 @@ class TimeDependencePostprocessor(abc.ABC):
         
         Returns
         -------
-        templates: np.ndarray
+        templates: pl.DataFrame
             Dependence templates of shape (wide_model_out.shape[0], self.train_Y.shape[1])
         """
 
@@ -44,7 +44,9 @@ class TimeDependencePostprocessor(abc.ABC):
     def transform(self, model_out: pl.DataFrame,
                   reference_time_col: str = "reference_date",
                   horizon_col: str = "horizon", pred_col: str = "value",
-                  idx_col: str = "output_type_id"):
+                  idx_col: str = "output_type_id",
+                  obs_mask: np.ndarray | None = None,
+                  return_long_format: bool = True):
         """
         Apply a postprocessing transformation to sample predictions to induce
         dependence across time in the predictive samples.
@@ -63,6 +65,16 @@ class TimeDependencePostprocessor(abc.ABC):
             name of column in model_out with predicted values (samples)
         idx_col: str
             name of column in model_out with sample indices
+        obs_mask: np.ndarray | None
+            mask to use for observed data. The primary use case is to support
+            cross-validation. If None, all observed data are used to form
+            dependence templates. Otherwise, `obs_mask` should be a boolean
+            array of shape (self.df.shape[0], ). Rows of self.df where obs_mask
+            is True will be used, while rows of self.df where obs_mask is False
+            will not be used.
+        return_long_format: bool
+            If True, return long format. If False, return wide format with
+            horizon pivoted into columns.
         
         Returns
         -------
@@ -76,7 +88,7 @@ class TimeDependencePostprocessor(abc.ABC):
         max_horizon = model_out[horizon_col].max()
         
         # extract train_X and train_Y from observed data (self.df)
-        self._build_train_X_Y(min_horizon, max_horizon)
+        self._build_train_X_Y(min_horizon, max_horizon, obs_mask)
         
         # perform the transformation, one group at a time
         transformed_wide_model_out = (
@@ -84,6 +96,9 @@ class TimeDependencePostprocessor(abc.ABC):
             .group_by(*(self.key_cols + [reference_time_col]))
             .map_groups(self._transform_one_group)
         )
+        
+        if not return_long_format:
+            return transformed_wide_model_out
         
         # unpivot back to long format
         pivot_index = [c for c in model_out.columns if c not in [horizon_col, pred_col]]
@@ -103,12 +118,12 @@ class TimeDependencePostprocessor(abc.ABC):
                 .cast(model_out[horizon_col].dtype)
             )
         )
-
+        
         return transformed_model_out
 
 
     def _transform_one_group(self, wide_model_out):
-        templates = self._build_templates(wide_model_out)
+        templates = self._build_templates(wide_model_out).to_numpy()
         transformed_model_out = self._apply_shuffle(
             wide_model_out = wide_model_out,
             value_cols = self.wide_horizon_cols,
@@ -164,7 +179,8 @@ class TimeDependencePostprocessor(abc.ABC):
         return shuffled_wmo
 
 
-    def _build_train_X_Y(self, min_horizon, max_horizon):
+    def _build_train_X_Y(self, min_horizon, max_horizon,
+                         obs_mask: np.ndarray | None = None):
         """
         Build training set data frames self.train_X with features and
         self.train_Y with observed values in windows from min_horizon to
@@ -176,6 +192,13 @@ class TimeDependencePostprocessor(abc.ABC):
             minimum prediction horizon
         max_horizon: int
             maximum prediction horizon
+        obs_mask: np.ndarray | None
+            mask to use for observed data. The primary use case is to support
+            cross-validation. If None, all observed data are used to form
+            dependence templates. Otherwise, `obs_mask` should be a boolean
+            array of shape (self.df.shape[0], ). Rows of self.df where obs_mask
+            is True will be used, while rows of self.df where obs_mask is False
+            will not be used.
         
         Returns
         -------
@@ -205,9 +228,11 @@ class TimeDependencePostprocessor(abc.ABC):
                     .alias(shift_varname)
                 )
         
-        df_dropnull = self.df.drop_nulls()
-        self.train_X = df_dropnull[self.feat_cols]
-        self.train_Y = df_dropnull[self.shift_varnames]
+        if obs_mask is None:
+            obs_mask = True
+        df_mask_and_dropnull = self.df.filter(obs_mask).drop_nulls()
+        self.train_X = df_mask_and_dropnull[self.feat_cols]
+        self.train_Y = df_mask_and_dropnull[self.shift_varnames]
 
 
     def _pivot_horizon(self, model_out, reference_time_col, horizon_col,
@@ -344,4 +369,5 @@ class Schaake(TimeDependencePostprocessor):
 
         # get the templates
         templates = self.train_Y[selected_inds, :]
+        
         return templates

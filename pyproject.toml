@@ -12,6 +12,7 @@ dynamic = ["version"]
 
 dependencies = [
     "numpy",
+    "optuna",
     "polars",
     "scikit-learn",
     "scipy"
@@ -20,7 +21,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "coverage",
+    "matplotlib",
     "mypy",
+    "pandas",
     "pre-commit",
     "pytest",
     "pytest-mock",
