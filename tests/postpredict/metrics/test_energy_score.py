@@ -67,7 +67,7 @@ def test_energy_score():
     
     actual_scores_df = energy_score(model_out_wide=model_out_wide,
                                     obs_data_wide=obs_data_wide,
-                                    key_cols=["location", "date"],
+                                    index_cols=["location", "date"],
                                     pred_cols=["horizon1", "horizon2", "horizon3"],
                                     obs_cols=["value_lead1", "value_lead2", "value_lead3"],
                                     reduce_mean=False)
@@ -77,7 +77,7 @@ def test_energy_score():
     expected_mean_score = np.mean([5.8560677725938221627, 5.9574451598773787708])
     actual_mean_score = energy_score(model_out_wide=model_out_wide,
                                      obs_data_wide=obs_data_wide,
-                                     key_cols=["location", "date"],
+                                     index_cols=["location", "date"],
                                      pred_cols=["horizon1", "horizon2", "horizon3"],
                                      obs_cols=["value_lead1", "value_lead2", "value_lead3"],
                                      reduce_mean=True)

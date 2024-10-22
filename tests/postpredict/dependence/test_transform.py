@@ -22,7 +22,7 @@ def test_transform(obs_data, long_model_out, templates, long_expected_final, mon
         
         
         def _build_templates(self, wide_model_out):
-            return templates
+            return pl.DataFrame(templates)
     
     tdp = TestPostprocessor(rng = np.random.default_rng(42))
     tdp.df = obs_data
