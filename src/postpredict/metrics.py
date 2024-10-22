@@ -4,7 +4,7 @@ from sklearn.metrics import pairwise_distances
 
 
 def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
-                 key_cols: list[str] | None, pred_cols: list[str], obs_cols: list[str],
+                 index_cols: list[str] | None, pred_cols: list[str], obs_cols: list[str],
                  reduce_mean: bool = True) -> float | pl.DataFrame:
     """
     Compute the energy score for a collection of predictive samples.
@@ -18,9 +18,11 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     obs_data_wide: pl.DataFrame
         DataFrame of observed values where each row corresponds to one
         (multivariate) observed outcome for one observational unit.
-    key_cols: list[str]
+    index_cols: list[str]
         Columns that appear in both `model_out_wide` and `obs_data_wide` that
-        identify observational units.
+        identify the unit of a multivariate prediction (e.g., including the
+        location, age_group, and reference_time of a prediction). These columns
+        will be included in the returned dataframe.
     pred_cols: list[str]
         Columns that appear in `model_out_wide` and identify predicted (sampled)
         values. The order of these should match the order of `obs_cols`.
@@ -60,12 +62,12 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
             score = np.mean(pairwise_distances(df[pred_cols], df[0, obs_cols])) \
                 - 0.5 * np.mean(pairwise_distances(df[pred_cols]))
         
-        return df[0, key_cols].with_columns(energy_score = pl.lit(score))
+        return df[0, index_cols].with_columns(energy_score = pl.lit(score))
     
     scores_by_unit = (
         model_out_wide
-        .join(obs_data_wide, on = key_cols)
-        .group_by(*key_cols)
+        .join(obs_data_wide, on = index_cols)
+        .group_by(*index_cols)
         .map_groups(energy_score_one_unit)
     )
     
@@ -77,7 +79,7 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
 
 
 def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
-                 key_cols: list[str] | None, pred_cols: list[str],
+                 index_cols: list[str] | None, pred_cols: list[str],
                  obs_cols: list[str]) -> pl.DataFrame:
     """
     Compute the probability integral transform (PIT) value for each of a
@@ -93,9 +95,11 @@ def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     obs_data_wide: pl.DataFrame
         DataFrame of observed values where each row corresponds to one
         (multivariate) observed outcome for one observational unit.
-    key_cols: list[str]
+    index_cols: list[str]
         Columns that appear in both `model_out_wide` and `obs_data_wide` that
-        identify observational units.
+        identify the unit of a multivariate prediction (e.g., including the
+        location, age_group, and reference_time of a prediction). These columns
+        will be included in the returned dataframe.
     pred_cols: list[str]
         Columns that appear in `model_out_wide` and identify predicted (sampled)
         values. The order of these should match the order of `obs_cols`.
@@ -115,15 +119,15 @@ def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     """
     scores_by_unit = (
         model_out_wide
-        .join(obs_data_wide, on = key_cols)
-        .group_by(key_cols)
+        .join(obs_data_wide, on = index_cols)
+        .group_by(index_cols)
         .agg(
             [
                 (pl.col(pred_c) <= pl.col(obs_c)).mean().alias(f"pit_{pred_c}") \
                 for pred_c, obs_c in zip(pred_cols, obs_cols)
             ]
         )
-        .select(key_cols + [f"pit_{pred_c}" for pred_c in pred_cols])
+        .select(index_cols + [f"pit_{pred_c}" for pred_c in pred_cols])
     )
 
     return scores_by_unit
