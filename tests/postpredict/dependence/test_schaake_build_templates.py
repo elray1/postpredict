@@ -71,7 +71,7 @@ def test_schaake_build_templates_unequal_weights(obs_data, wide_model_out):
         expected_freqs = (
             obs_data
             .with_columns(
-                weight_unnormalized = (pl.col("age_group") == age_group).cast(int) * (pl.col("date") < datetime.strptime("2020-01-01", "%Y-%m-%d") + timedelta(6)).cast(int) * pl.col("population")
+                weight_unnormalized = (pl.col("age_group") == age_group).cast(int) * (pl.col("date") < datetime.strptime("2020-01-14", "%Y-%m-%d") + timedelta(6)).cast(int) * pl.col("population")
             )
             .with_columns(
                 weight = pl.col("weight_unnormalized") / pl.col("weight_unnormalized").sum(),

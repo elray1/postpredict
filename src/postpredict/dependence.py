@@ -93,11 +93,8 @@ class TimeDependencePostprocessor(abc.ABC):
         max_horizon = model_out[horizon_col].max()
         
         # extract train_X and train_Y from observed data (self.df)
-        if pit_templates:
-            self._build_train_X_Y_pit(min_horizon, max_horizon, obs_mask,
-                                      wide_model_out)
-        else:
-            self._build_train_X_Y_obs(min_horizon, max_horizon, obs_mask)
+        self._build_train_X_Y(min_horizon, max_horizon, obs_mask,
+                              wide_model_out, reference_time_col, pit_templates)
         
         # perform the transformation, one group at a time
         transformed_wide_model_out = (
@@ -190,8 +187,9 @@ class TimeDependencePostprocessor(abc.ABC):
 
     def _build_train_X_Y(self, min_horizon: int, max_horizon: int,
                          obs_mask: np.ndarray | None = None,
-                         wide_model_out: pl.DataFrame,
-                         pit_templates: bool) -> None:
+                         wide_model_out: pl.DataFrame | None = None,
+                         reference_time_col: str | None = None,
+                         pit_templates: bool = False) -> None:
         """
         Build training set data frames self.train_X with features and
         self.train_Y with candidate dependence templates based on PIT values
@@ -213,6 +211,10 @@ class TimeDependencePostprocessor(abc.ABC):
         wide_model_out: pl.DataFrame
             polars dataframe with sample predictions that do not necessarily
             capture temporal dependence, in wide format with horizons in columns.
+            Only needed if pit_templates = True.
+        reference_time_col: str
+            name of column in wide_model_out that records the reference time for
+            predictions. Only needed if pit_templates = True
         pit_templates: bool
             If False (default), templates are based on observed values. If True,
             templates are based on PIT values for past forecasts.
@@ -250,21 +252,28 @@ class TimeDependencePostprocessor(abc.ABC):
         df_mask_and_dropnull = self.df.filter(obs_mask).drop_nulls()
 
         if pit_templates:
-            pit_values = marginal_pit(
-                model_out_wide = wide_model_out,
-                obs_data_wide = df_mask_and_dropnull,
-                key_cols = ,
-                pred_cols = ,
-                obs_cols = 
+            pit_values = (
+                marginal_pit(
+                    model_out_wide = wide_model_out,
+                    obs_data_wide = df_mask_and_dropnull.with_columns(pl.col(self.time_col).alias(reference_time_col)),
+                    index_cols = self.key_cols + [reference_time_col],
+                    pred_cols = self.wide_horizon_cols,
+                    obs_cols = self.shift_varnames
+                )
+                .join(
+                    wide_model_out[list(set(self.key_cols + [reference_time_col] + self.feat_cols))].unique(),
+                    on=self.key_cols + [reference_time_col],
+                    how='left'
+                )
             )
             train_X_Y_source = pit_values
-            train_Y_cols = pit_colnames
+            train_Y_cols = [f"pit_{pred_c}" for pred_c in self.wide_horizon_cols]
         else:
             train_X_Y_source = df_mask_and_dropnull
             train_Y_cols = self.shift_varnames
         
-        self.train_X = df_mask_and_dropnull[self.feat_cols]
-        self.train_Y = df_mask_and_dropnull[self.shift_varnames]
+        self.train_X = train_X_Y_source[self.feat_cols]
+        self.train_Y = train_X_Y_source[train_Y_cols]
 
 
     def _pivot_horizon(self, model_out, reference_time_col, horizon_col,
