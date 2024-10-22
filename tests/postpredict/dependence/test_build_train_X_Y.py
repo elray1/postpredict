@@ -200,6 +200,7 @@ def test_build_train_X_Y_pit_templates_mask(obs_data, wide_model_out, monkeypatc
     tdp.feat_cols = ["location", "age_group", "reference_date"]
     tdp.wide_horizon_cols = ["horizon1", "horizon2", "horizon3"]
     
+    # we keep everything other than the b/young combination
     mask = (obs_data["location"] != "b") | (obs_data["age_group"] != "young")
 
     tdp._build_train_X_Y(1, 3, obs_mask=mask, wide_model_out=wide_model_out,
@@ -214,7 +215,7 @@ def test_build_train_X_Y_pit_templates_mask(obs_data, wide_model_out, monkeypatc
         "reference_date": [datetime.strptime("2020-01-15", "%Y-%m-%d")] * 3
     })
     
-    # For a/young, a/old, b/young, b/old, what proportion of samples are <=
+    # For a/young, a/old, b/old, what proportion of samples are <=
     # the observed value at each horizon?  see fixtures in conftest.py
     expected_train_Y = pl.DataFrame({
         "pit_horizon1": [0.8, 1.0, 1.0],

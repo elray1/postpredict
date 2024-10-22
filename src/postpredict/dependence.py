@@ -192,8 +192,9 @@ class TimeDependencePostprocessor(abc.ABC):
                          pit_templates: bool = False) -> None:
         """
         Build training set data frames self.train_X with features and
-        self.train_Y with candidate dependence templates based on PIT values
-        derived from past forecasts.
+        self.train_Y with candidate dependence templates based on either
+        observed values in windows from min_horizon to max_horizon around each
+        time point or PIT values derived from past forecasts.
         
         Parameters
         ----------
