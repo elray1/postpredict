@@ -4,8 +4,8 @@ import numpy as np
 import polars as pl
 
 from postpredict import weighters
-from postpredict.util import argsort_random_tiebreak
 from postpredict.metrics import marginal_pit
+from postpredict.util import argsort_random_tiebreak
 
 
 class TimeDependencePostprocessor(abc.ABC):
@@ -264,7 +264,7 @@ class TimeDependencePostprocessor(abc.ABC):
                 .join(
                     wide_model_out[list(set(self.key_cols + [reference_time_col] + self.feat_cols))].unique(),
                     on=self.key_cols + [reference_time_col],
-                    how='left'
+                    how="left"
                 )
             )
             train_X_Y_source = pit_values

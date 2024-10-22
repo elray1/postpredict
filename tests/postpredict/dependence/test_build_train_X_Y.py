@@ -180,8 +180,8 @@ def test_build_train_X_Y_pit_templates(obs_data, wide_model_out, monkeypatch):
     
     # check joined results up to row order
     assert_frame_equal(
-        pl.concat([expected_train_X, expected_train_Y], how='horizontal'),
-        pl.concat([tdp.train_X, tdp.train_Y], how='horizontal'),
+        pl.concat([expected_train_X, expected_train_Y], how="horizontal"),
+        pl.concat([tdp.train_X, tdp.train_Y], how="horizontal"),
         check_row_order=False
     )
 
@@ -229,7 +229,7 @@ def test_build_train_X_Y_pit_templates_mask(obs_data, wide_model_out, monkeypatc
     
     # check joined results up to row order
     assert_frame_equal(
-        pl.concat([expected_train_X, expected_train_Y], how='horizontal'),
-        pl.concat([tdp.train_X, tdp.train_Y], how='horizontal'),
+        pl.concat([expected_train_X, expected_train_Y], how="horizontal"),
+        pl.concat([tdp.train_X, tdp.train_Y], how="horizontal"),
         check_row_order=False
     )
