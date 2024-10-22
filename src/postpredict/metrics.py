@@ -77,8 +77,8 @@ def energy_score(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
 
 
 def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
-                 key_cols: list[str] | None, pred_cols: list[str], obs_cols: list[str],
-                 reduce_mean: bool = True) -> float | pl.DataFrame:
+                 key_cols: list[str] | None, pred_cols: list[str],
+                 obs_cols: list[str]) -> pl.DataFrame:
     """
     Compute the probability integral transform (PIT) value for each of a
     collection of marginal predictive distributions represented by a set of
@@ -102,9 +102,6 @@ def marginal_pit(model_out_wide: pl.DataFrame, obs_data_wide: pl.DataFrame,
     obs_cols: list[str]
         Columns that appear in `obs_data_wide` and identify observed values. The
         order of these should match the order of `pred_cols`.
-    reduce_mean: bool = True
-        Indicator of whether to return a numeric mean energy score (default) or
-        a pl.DataFrame with one row per observational unit.
     
     Returns
     -------
