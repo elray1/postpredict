@@ -15,7 +15,7 @@ def test_build_train_X_Y_positive_horizons(obs_data, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
@@ -47,7 +47,7 @@ def test_build_train_X_Y_nonnegative_horizons(obs_data, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
@@ -80,7 +80,7 @@ def test_build_train_X_Y_negative_horizons(obs_data, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
@@ -113,7 +113,7 @@ def test_build_train_X_Y_mask(obs_data, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
@@ -147,7 +147,7 @@ def test_build_train_X_Y_pit_templates(obs_data, wide_model_out, monkeypatch):
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
@@ -193,7 +193,7 @@ def test_build_train_X_Y_pit_templates_mask(obs_data, wide_model_out, monkeypatc
     # See https://stackoverflow.com/a/77748100
     monkeypatch.setattr(TimeDependencePostprocessor, "__abstractmethods__", set())
     tdp = TimeDependencePostprocessor(rng = np.random.default_rng(42))
-    tdp.df = obs_data
+    tdp.target_data_train = obs_data
     tdp.key_cols = ["location", "age_group"]
     tdp.time_col = "date",
     tdp.obs_col = "value"
