@@ -245,8 +245,6 @@ class TimeDependencePostprocessor(abc.ABC):
         if obs_mask is None:
             obs_mask = True
         df_mask_and_dropnull = self.target_data_train.filter(obs_mask).drop_nulls()
-        print("build train X_Y, df mask and dropnull")
-        print(df_mask_and_dropnull)
 
         if pit_templates:
             pit_values = (
@@ -263,8 +261,6 @@ class TimeDependencePostprocessor(abc.ABC):
                     how="left"
                 )
             )
-            print("pit values, in _build_train_X_Y")
-            print(pit_values)
             train_X_Y_source = pit_values
             train_Y_cols = [f"pit_{pred_c}" for pred_c in self.wide_horizon_cols]
         else:
